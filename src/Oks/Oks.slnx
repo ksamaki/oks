@@ -1,0 +1,13 @@
+<Solution>
+  <Project Path="../../tests/Oks/Oks.Tests/Oks.Tests.csproj" Id="2770d2e8-6d8c-4d69-8e5a-99e8759019a1" />
+  <Project Path="Oks.Domain/Oks.Domain.csproj" />
+  <Project Path="Oks.Logging.Abstractions/Oks.Logging.Abstractions.csproj" Id="65d966ed-4f4a-4253-ad71-732dd8c4978e" />
+  <Project Path="Oks.Logging.EfCore/Oks.Logging.EfCore.csproj" Id="a95fc717-9afc-4460-97c3-26f01dd221fd" />
+  <Project Path="Oks.Logging/Oks.Logging.csproj" Id="f39065fc-70d1-48da-9599-0bed5b5f10a4" />
+  <Project Path="Oks.Persistence.Abstractions/Oks.Persistence.Abstractions.csproj" Id="cd7b07dd-6129-4412-b2a8-845d801af6f1" />
+  <Project Path="Oks.Persistence.EfCore/Oks.Persistence.EfCore.csproj" Id="b42b3a0f-1851-4770-9f53-65a0ba7f2540" />
+  <Project Path="Oks.Shared/Oks.Shared.csproj" Id="94aa2f58-e1ca-4efc-a681-baf4c9464ccd" />
+  <Project Path="Oks.Web.Abstractions/Oks.Web.Abstractions.csproj" Id="02389c5e-98c5-4cc3-9a4a-011e21d3a052" />
+  <Project Path="Oks.Web.Validation/Oks.Web.Validation.csproj" Id="b49c118e-80f3-4ebc-bb27-c3bb07197902" />
+  <Project Path="Oks.Web/Oks.Web.csproj" Id="d5a7e404-46e5-4055-8cd3-02595fa183d5" />
+</Solution>
