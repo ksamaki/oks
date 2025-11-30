@@ -1,0 +1,93 @@
+# --------------------------------------------------------
+# Visual Studio / .NET Core / NuGet / EFCore için EN DOĞRU .gitignore
+# --------------------------------------------------------
+
+# User specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio generated files
+.vs/
+_VSCode/
+
+# Build results
+bin/
+obj/
+out/
+Debug/
+Release/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.psmdcp
+project.lock.json
+project.assets.json
+project.nuget.cache
+*.deps.json
+
+# Cache
+*.pidb
+*.svclog
+*.scc
+
+# EF Core Migrations bin/obj
+[Mm]igrations/**/bin/
+[Mm]igrations/**/obj/
+
+# Logs
+*.log
+logs/
+
+# Entity Framework global tools
+efbundle/
+
+# System files
+Thumbs.db
+Desktop.ini
+
+# Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+# VS Code
+.vscode/
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Publish outputs
+publish/
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# T4
+*.generated.cs
+
+# Docker
+**/docker-compose.override.yml
+.env
+
+# LocalSettings
+appsettings.Development.json
+appsettings.Local.json
+
+# Certificates
+*.pfx
+*.key
+*.pem
+
+# Ignore OS junk
+.DS_Store
