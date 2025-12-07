@@ -5,7 +5,6 @@ using Oks.Web.Filters;
 using Oks.Web.Middleware;
 using Oks.Web.RateLimiting;
 using Oks.Web.Performance;
-using Oks.Web.Middleware;
 
 namespace Oks.Web.Extensions;
 

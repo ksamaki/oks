@@ -3,6 +3,7 @@ using Oks.Logging.Abstractions.Enums;
 using Oks.Logging.Abstractions.Interfaces;
 using Oks.Logging.Abstractions.Models;
 using Oks.Logging.EfCore.Entities;
+using System.Text.Json;
 
 namespace Oks.Logging.Writers;
 
@@ -196,27 +197,100 @@ public sealed class EfCoreOksLogWriter<TDbContext> : IOksLogWriter
 
     private string ExtractEntityName(OksLogEntry e)
     {
-        // TODO: ExtraDataJson'dan çekilebilir. Şimdilik boş geçiyoruz.
+        if (string.IsNullOrWhiteSpace(e.ExtraDataJson))
+            return "UnknownEntity";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(e.ExtraDataJson);
+            if (doc.RootElement.TryGetProperty("EntityName", out var prop))
+            {
+                return prop.GetString() ?? "UnknownEntity";
+            }
+        }
+        catch { }
+
         return "UnknownEntity";
     }
 
     private string ExtractEntityId(OksLogEntry e)
     {
+        if (string.IsNullOrWhiteSpace(e.ExtraDataJson))
+            return "0";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(e.ExtraDataJson);
+            if (doc.RootElement.TryGetProperty("EntityId", out var prop))
+            {
+                return prop.GetString() ?? "0";
+            }
+        }
+        catch { }
+
         return "0";
     }
 
     private string ExtractOperation(OksLogEntry e)
     {
-        return "Unknown";
+        if (string.IsNullOrWhiteSpace(e.ExtraDataJson))
+            return e.Category == OksLogCategory.RepositoryRead ? "Read" :
+                   e.Category == OksLogCategory.RepositoryWrite ? "Write" :
+                   "Unknown";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(e.ExtraDataJson);
+            if (doc.RootElement.TryGetProperty("Operation", out var prop))
+            {
+                return prop.GetString() ??
+                       (e.Category == OksLogCategory.RepositoryRead ? "Read" :
+                        e.Category == OksLogCategory.RepositoryWrite ? "Write" : "Unknown");
+            }
+        }
+        catch { }
+
+        return e.Category == OksLogCategory.RepositoryRead ? "Read" :
+               e.Category == OksLogCategory.RepositoryWrite ? "Write" : "Unknown";
     }
 
     private string? ExtractOldValues(OksLogEntry e)
     {
+        if (string.IsNullOrWhiteSpace(e.ExtraDataJson))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(e.ExtraDataJson);
+            if (doc.RootElement.TryGetProperty("OldValues", out var prop))
+            {
+                return prop.ValueKind == JsonValueKind.Null
+                    ? null
+                    : prop.GetRawText(); // JSON string olarak saklıyoruz
+            }
+        }
+        catch { }
+
         return null;
     }
 
     private string? ExtractNewValues(OksLogEntry e)
     {
+        if (string.IsNullOrWhiteSpace(e.ExtraDataJson))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(e.ExtraDataJson);
+            if (doc.RootElement.TryGetProperty("NewValues", out var prop))
+            {
+                return prop.ValueKind == JsonValueKind.Null
+                    ? null
+                    : prop.GetRawText();
+            }
+        }
+        catch { }
+
         return null;
     }
 }

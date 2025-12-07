@@ -10,6 +10,7 @@ using Oks.Logging.Abstractions.Models;
 using Oks.Shared.Results;
 using Oks.Web.Abstractions.Attributes;
 using Oks.Web.Performance;
+using Oks.Logging.Abstractions.Extensions;
 
 namespace Oks.Web.Filters;
 
@@ -82,7 +83,7 @@ public sealed class OksPerformanceFilter : IAsyncActionFilter
             ExtraDataJson = JsonSerializer.Serialize(extra)
         };
 
-        await _logWriter.WriteAsync(entry);
+        await _logWriter.SafeWriteAsync(entry);
 
         // Skip değilse ve ThrowOnSlowRequest true ise exception fırlat
         if (!skip && _options.ThrowOnSlowRequest)

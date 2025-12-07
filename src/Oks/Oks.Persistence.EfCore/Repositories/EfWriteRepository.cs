@@ -1,6 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Oks.Domain.Base;
+using Oks.Logging.Abstractions.Enums;
+using Oks.Logging.Abstractions.Interfaces;
+using Oks.Logging.Abstractions.Models;
 using Oks.Persistence.Abstractions.Repositories;
+using Microsoft.Extensions.Options;
+using Oks.Persistence.EfCore.Options;
+
 
 namespace Oks.Persistence.EfCore.Repositories;
 
@@ -10,28 +18,56 @@ public class EfWriteRepository<TEntity, TKey>
 {
     private readonly WriteTracker _writeTracker;
 
-    public EfWriteRepository(DbContext dbContext, WriteTracker writeTracker)
-        : base(dbContext)
+    public EfWriteRepository(
+        DbContext dbContext,
+        WriteTracker writeTracker,
+        IOksLogWriter? logWriter = null,
+        IOptions<OksRepositoryLoggingOptions>? repoLogOptions = null)
+        : base(dbContext, logWriter, repoLogOptions)
     {
         _writeTracker = writeTracker;
     }
 
     public Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        DbSet.Add(entity);
-        _writeTracker.MarkWrite();
-        return Task.CompletedTask;
+        return MeasureWriteAsync("Add", async () =>
+        {
+            await DbSet.AddAsync(entity, cancellationToken);
+            _writeTracker.MarkWrite();
+        });
     }
 
     public void Update(TEntity entity)
     {
-        DbSet.Update(entity);
-        _writeTracker.MarkWrite();
+        MeasureWriteAsync("Update", () =>
+        {
+            DbSet.Update(entity);
+            _writeTracker.MarkWrite();
+            return Task.CompletedTask;
+        }).GetAwaiter().GetResult();
     }
 
     public void Remove(TEntity entity)
     {
-        DbSet.Remove(entity);
-        _writeTracker.MarkWrite();
+        MeasureWriteAsync("Remove", () =>
+        {
+            DbSet.Remove(entity);
+            _writeTracker.MarkWrite();
+            return Task.CompletedTask;
+        }).GetAwaiter().GetResult();
+    }
+
+    private async Task MeasureWriteAsync(string operation, Func<Task> action)
+    {
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            sw.Stop();
+            await LogRepositoryAsync(isWrite: true, operation, sw.ElapsedMilliseconds);
+        }
     }
 }

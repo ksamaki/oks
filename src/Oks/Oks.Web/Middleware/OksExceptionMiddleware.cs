@@ -6,6 +6,7 @@ using Oks.Logging.Abstractions.Enums;
 using Oks.Logging.Abstractions.Interfaces;
 using Oks.Logging.Abstractions.Models;
 using Oks.Shared.Results;
+using Oks.Logging.Abstractions.Extensions;
 
 namespace Oks.Web.Middleware;
 
@@ -34,7 +35,7 @@ public sealed class OksExceptionMiddleware : IMiddleware
             _logger.LogError(ex, "Unhandled exception occurred.");
 
             // 2) SQLogException tablosuna log yaz
-            await _logWriter.WriteAsync(new OksLogEntry
+            await _logWriter.SafeWriteAsync(new OksLogEntry
             {
                 Category = OksLogCategory.Exception,
                 Level = OksLogLevel.Error,

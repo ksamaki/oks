@@ -94,7 +94,7 @@ public abstract class OksDbContextBase : DbContext
 
     /// <summary>
     /// Mevcut kullanıcı bilgisini elde etmek için override edilebilir nokta.
-    /// WaitMe tarafında bunu override edip HttpContext'ten kullanıcı adını/id'sini alabilirsin.
+    /// Bunu override edip HttpContext'ten kullanıcı adını/id'sini alabiliriz.
     /// </summary>
     protected virtual string? GetCurrentUserIdentifier() => null;
 

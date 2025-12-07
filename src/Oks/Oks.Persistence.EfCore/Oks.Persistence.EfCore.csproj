@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Oks.Domain\Oks.Domain.csproj" />
+    <ProjectReference Include="..\Oks.Logging.Abstractions\Oks.Logging.Abstractions.csproj" />
     <ProjectReference Include="..\Oks.Persistence.Abstractions\Oks.Persistence.Abstractions.csproj" />
   </ItemGroup>
 

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Oks.Logging.Abstractions.Enums;
 using Oks.Logging.Abstractions.Interfaces;
 using Oks.Logging.Abstractions.Models;
+using Oks.Logging.Abstractions.Extensions;
 
 namespace Oks.Web.Middleware;
 
@@ -61,7 +62,7 @@ public sealed class OksRequestLoggingMiddleware : IMiddleware
         // Eğer log yazarken hata olursa uygulamayı düşürmemek için try/catch ile sarıyoruz
         try
         {
-            await _logWriter.WriteAsync(entry);
+            await _logWriter.SafeWriteAsync(entry);
         }
         catch (Exception ex)
         {

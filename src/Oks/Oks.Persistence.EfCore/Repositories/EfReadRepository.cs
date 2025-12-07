@@ -1,7 +1,15 @@
-﻿using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Oks.Domain.Base;
+using Oks.Logging.Abstractions.Enums;
+using Oks.Logging.Abstractions.Extensions;
+using Oks.Logging.Abstractions.Interfaces;
+using Oks.Logging.Abstractions.Models;
 using Oks.Persistence.Abstractions.Repositories;
+using Oks.Persistence.EfCore.Options;
+using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Text.Json;
 
 namespace Oks.Persistence.EfCore.Repositories;
 
@@ -12,10 +20,22 @@ public class EfReadRepository<TEntity, TKey>
     protected readonly DbContext DbContext;
     protected readonly DbSet<TEntity> DbSet;
 
-    public EfReadRepository(DbContext dbContext)
+    private readonly IOksLogWriter? _logWriter;
+    private readonly OksRepositoryLoggingOptions _repoLogOptions;
+
+    public EfReadRepository(
+        DbContext dbContext,
+        IOksLogWriter? logWriter = null,
+        IOptions<OksRepositoryLoggingOptions>? repoLogOptions = null)
     {
         DbContext = dbContext;
         DbSet = dbContext.Set<TEntity>();
+
+        _logWriter = logWriter;
+        _repoLogOptions = repoLogOptions?.Value ?? new OksRepositoryLoggingOptions
+        {
+            Enabled = false
+        };
     }
 
     public IQueryable<TEntity> Query()
@@ -25,20 +45,78 @@ public class EfReadRepository<TEntity, TKey>
         TKey id,
         CancellationToken cancellationToken = default)
     {
-        return await DbSet.FindAsync(new object[] { id! }, cancellationToken);
+        return await MeasureReadAsync(
+            "GetById",
+            async () => await DbSet.FindAsync(new object[] { id! }, cancellationToken));
     }
 
     public async Task<List<TEntity>> GetListAsync(
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<TEntity> query = DbSet;
+        return await MeasureReadAsync(
+            "GetList",
+            async () =>
+            {
+                IQueryable<TEntity> query = DbSet;
 
-        if (predicate is not null)
+                if (predicate is not null)
+                {
+                    query = query.Where(predicate);
+                }
+
+                return await query.ToListAsync(cancellationToken);
+            });
+    }
+
+    private async Task<T> MeasureReadAsync<T>(
+        string operation,
+        Func<Task<T>> action)
+    {
+        var sw = Stopwatch.StartNew();
+        try
         {
-            query = query.Where(predicate);
+            return await action();
         }
+        finally
+        {
+            sw.Stop();
+            await LogRepositoryAsync(isWrite: false, operation, sw.ElapsedMilliseconds);
+        }
+    }
 
-        return await query.ToListAsync(cancellationToken);
+    protected async Task LogRepositoryAsync(bool isWrite, string operation, long elapsedMs)
+    {
+        // Logging hiç kurulmaması durumu
+        if (_logWriter is null)
+            return;
+
+        // Repository logging özel olarak açılmamışsa
+        if (!_repoLogOptions.Enabled)
+            return;
+
+        try
+        {
+            var entry = new OksLogEntry
+            {
+                Category = isWrite ? OksLogCategory.RepositoryWrite : OksLogCategory.RepositoryRead,
+                Level = OksLogLevel.Info,
+                Message = $"Repository {(isWrite ? "WRITE" : "READ")} on {typeof(TEntity).Name} ({operation}) took {elapsedMs} ms.",
+                CreatedAtUtc = DateTime.UtcNow,
+                ElapsedMilliseconds = elapsedMs,
+                ExtraDataJson = JsonSerializer.Serialize(new
+                {
+                    EntityName = typeof(TEntity).Name,
+                    Operation = operation,
+                    ElapsedMs = elapsedMs
+                })
+            };
+
+            await _logWriter.SafeWriteAsync(entry);
+        }
+        catch
+        {
+            // Repository davranışını bozmamak için log hatasını swallow ediyoruz.
+        }
     }
 }

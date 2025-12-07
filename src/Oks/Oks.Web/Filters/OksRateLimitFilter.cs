@@ -11,6 +11,7 @@ using Oks.Shared.Results;
 using Oks.Web.Abstractions.Attributes;
 using Oks.Web.RateLimiting;
 using System.Text.Json;
+using Oks.Logging.Abstractions.Extensions;
 
 namespace Oks.Web.Filters;
 
@@ -191,6 +192,6 @@ public sealed class OksRateLimitFilter : IAsyncActionFilter
             ExtraDataJson = JsonSerializer.Serialize(extra)
         };
 
-        await _logWriter.WriteAsync(entry);
+        await _logWriter.SafeWriteAsync(entry);
     }
 }
