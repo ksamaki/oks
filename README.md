@@ -20,11 +20,11 @@ gibi altyapýlarý, **tek satýr konfigurasyon ile kullanýlabilir** hale getirmekti
 
 ## Ana Özellikler
 
-- ? **Tamamen modüler** – Ne eklersen o çalýþýr, eklemediðin hiçbir þey sistemi bozmaz.
-- ? **SOLID & Clean Architecture uyumlu** katmanlar.
-- ? **Opsiyonel log pipeline** – IOksLogWriter yoksa bile kod kýrýlmaz.
-- ? **EF Core tabanlý repository & unit of work**.
-- ? **Action baþlamadan çalýþan validation & filter mimarisi**.
+- **Tamamen modüler** – Ne eklersen o çalýþýr, eklemediðin hiçbir þey sistemi bozmaz.
+- **SOLID & Clean Architecture uyumlu** katmanlar.
+- **Opsiyonel log pipeline** – IOksLogWriter yoksa bile kod kýrýlmaz.
+- **EF Core tabanlý repository & unit of work**.
+- **Action baþlamadan çalýþan validation & filter mimarisi**.
 
 ---
 
