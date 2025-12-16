@@ -38,10 +38,10 @@ public class EfReadRepository<TEntity, TKey>
         };
     }
 
-    public IQueryable<TEntity> Query()
+    public virtual IQueryable<TEntity> Query()
         => DbSet.AsQueryable();
 
-    public async Task<TEntity?> GetByIdAsync(
+    public virtual async Task<TEntity?> GetByIdAsync(
         TKey id,
         CancellationToken cancellationToken = default)
     {
@@ -50,7 +50,7 @@ public class EfReadRepository<TEntity, TKey>
             async () => await DbSet.FindAsync(new object[] { id! }, cancellationToken));
     }
 
-    public async Task<List<TEntity>> GetListAsync(
+    public virtual async Task<List<TEntity>> GetListAsync(
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {

@@ -61,7 +61,7 @@ public abstract class OksDbContextBase : DbContext
 
                 case EntityState.Modified:
                     audited.UpdatedAt = now;
-                    audited.UpdatedBy ??= currentUser;
+                    audited.UpdatedBy = currentUser;
                     break;
             }
         }
@@ -87,7 +87,7 @@ public abstract class OksDbContextBase : DbContext
 
                 audited.IsDeleted = true;
                 audited.DeletedAt = now;
-                audited.DeletedBy ??= currentUser;
+                audited.DeletedBy = currentUser;
             }
         }
     }

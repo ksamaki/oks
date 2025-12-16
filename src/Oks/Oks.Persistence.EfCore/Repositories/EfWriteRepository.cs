@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Oks.Domain.Base;
 using Oks.Logging.Abstractions.Enums;
@@ -8,6 +7,7 @@ using Oks.Logging.Abstractions.Models;
 using Oks.Persistence.Abstractions.Repositories;
 using Microsoft.Extensions.Options;
 using Oks.Persistence.EfCore.Options;
+using Oks.Persistence.Abstractions.Caching;
 
 
 namespace Oks.Persistence.EfCore.Repositories;
@@ -17,15 +17,18 @@ public class EfWriteRepository<TEntity, TKey>
     where TEntity : Entity<TKey>
 {
     private readonly WriteTracker _writeTracker;
+    private readonly IRepositoryCacheInvalidator? _cacheInvalidator;
 
     public EfWriteRepository(
         DbContext dbContext,
         WriteTracker writeTracker,
+        IRepositoryCacheInvalidator? cacheInvalidator = null,
         IOksLogWriter? logWriter = null,
         IOptions<OksRepositoryLoggingOptions>? repoLogOptions = null)
         : base(dbContext, logWriter, repoLogOptions)
     {
         _writeTracker = writeTracker;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -34,6 +37,7 @@ public class EfWriteRepository<TEntity, TKey>
         {
             await DbSet.AddAsync(entity, cancellationToken);
             _writeTracker.MarkWrite();
+            _cacheInvalidator?.Invalidate<TEntity>();
         });
     }
 
@@ -43,6 +47,7 @@ public class EfWriteRepository<TEntity, TKey>
         {
             DbSet.Update(entity);
             _writeTracker.MarkWrite();
+            _cacheInvalidator?.Invalidate<TEntity>();
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
     }
@@ -53,6 +58,7 @@ public class EfWriteRepository<TEntity, TKey>
         {
             DbSet.Remove(entity);
             _writeTracker.MarkWrite();
+            _cacheInvalidator?.Invalidate<TEntity>();
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
     }
