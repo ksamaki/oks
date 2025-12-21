@@ -1,5 +1,7 @@
 # Logging - Usage
 
+[Logging - Description](Logging_Description.md) | [Ana sayfa](../README.md)
+
 Projene OKS logging'i eklemek için aşağıdaki adımları kopyalayabilirsin.
 
 ## 1) Proje referansları (`.csproj`)

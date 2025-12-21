@@ -1,5 +1,7 @@
 # Read-only Repository - Usage
 
+[Read-only Repository - Description](ReadRepository_Description.md) | [Ana sayfa](../README.md)
+
 Aşağıdaki adımları doğrudan kopyala-yapıştır ederek projene read-only repository katmanını ekleyebilirsin.
 
 ## 1) Proje referanslarını ekle (`.csproj`)

@@ -1,5 +1,7 @@
 # Validation (FluentValidation) - Description
 
+[Ana sayfa](../README.md)
+
 OKS validation katmanı, FluentValidation validator'larını otomatik DI'a ekler ve action başlamadan önce `OksValidationFilter` ile doğrular. `[OksSkipValidation]` attribute'u ile esnek şekilde devre dışı bırakılabilir.
 
 ## Başlıca bileşenler

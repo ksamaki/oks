@@ -1,5 +1,7 @@
 # Validation (FluentValidation) - Usage
 
+[Validation - Description](Validation_Description.md) | [Ana sayfa](../README.md)
+
 Validator'ları otomatik çalıştırmak için aşağıdaki adımları kopyalayabilirsin.
 
 ## 1) Proje referansları (`.csproj`)

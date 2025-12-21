@@ -1,5 +1,7 @@
 # Logging - Description
 
+[Ana sayfa](../README.md)
+
 OKS logging modülü; Request, Exception, Performance, RateLimit, Repository, Audit ve Custom kategorilerini destekleyen modüler bir pipeline sunar. IOksLogWriter uygulanmadığında bile uygulama kırılmaz; eklendiğinde otomatik olarak log yazmaya başlar.
 
 ## Log tipleri

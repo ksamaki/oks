@@ -1,5 +1,7 @@
 # Read-only Repository - Description
 
+[Ana sayfa](../README.md)
+
 OKS read-only repository katmanı, veri okumayı yazma işlerinden ayırarak CQRS dostu ve test edilebilir bir altyapı sağlar. `IReadRepository<TEntity, TKey>` arabirimi; tekil kayıt, liste, sayfalama ve sorgu desteğini soyutlar. EF Core implementasyonu query filtreleri (soft delete) ve `AsNoTracking` varsayılanlarıyla gelir.
 
 ## Başlıca bileşenler
