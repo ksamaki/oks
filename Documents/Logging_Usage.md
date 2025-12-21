@@ -128,6 +128,8 @@ Add-Migration InitOksLogs
 Update-Database
 ```
 
+`Update-Database` veya uygulamanın açılışında `Database.Migrate()` çağrıldığında EF migration'larıyla birlikte log tabloları otomatik oluşur.
+
 ## 7) Attribute ile sınıf/metot bazında skip
 Performans veya rate limit loglarını ihtiyaç halinde sınıf ya da metot bazında bypass edebilirsin. Skip edildiğinde işlem devam eder, log kaydında `SkipEnforced = true` olarak işaretlenir.
 
