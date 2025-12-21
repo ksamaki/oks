@@ -1,90 +1,34 @@
-﻿# OKS Framework
+# OKS Framework
 
-Modern .NET 8+ uygulamalar için geliştirilmiş, modüler, genişletilebilir ve tamamen **opsiyonel bileşenlerden** oluşan bir uygulama çatısıdır.
+Modern .NET 8+ uygulamalar için geliştirilmiş, modüler, genişletilebilir ve tamamen **opsiyonel bileşenlerden** oluşan bir uygulama çatısıdır. OKS; Clean Architecture, SOLID, DI/IoC ve middleware-filter tabanlı modern tasarım yaklaşımlarına göre tasarlanmıştır.
 
-OKS; Clean Architecture, SOLID, DI/IoC ve Middleware-Filter tabanlı modern tasarım yaklaşımlarına göre tasarlanmıştır.
-
-Amaç; yeni projelerde tekrar tekrar yazılan:
-
-- Logging
-- Rate limiting
-- Performance monitoring
-- Request tracing
-- Exception handling
-- Repository & Unit of Work
-- Entity auditing
-
-gibi altyapıları, **tek satır konfigurasyon ile kullanılabilir** hale getirmektir.
+Amaç; yeni projelerde tekrar tekrar yazılan logging, rate limiting, validation, repository & unit of work, exception handling gibi altyapıları **tek satır konfigurasyon ile kullanılabilir** hale getirmektir. Her özellik yalnızca eklendiğinde çalışır, eklenmediğinde sistemi bozmaz.
 
 ---
+## Özellikler ve dokümantasyon
 
-## Kullanım Kılavuzu
+Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal detayları açıklar, **Usage** dosyası ise kopyala-yapıştır ile projene ekleyebileceğin kod parçalarını içerir.
 
-- Detaylı kullanım ve örnek kodlar: [OKS_USAGE.md](OKS_USAGE.md)
+- **Read-only Repository**: [ReadRepository_Description.md](ReadRepository_Description.md)
+- **Write Repository & Unit of Work**: [WriteRepository_Description.md](WriteRepository_Description.md)
+- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Logging_Description.md)
+- **Validation (FluentValidation)**: [Validation_Description.md](Validation_Description.md)
 
----
-
-## Ana Özellikler
-
-- **Tamamen modüler** - Ne eklersen o çalışır, eklemediğin hiçbir şey sistemi bozmaz.
-- **SOLID & Clean Architecture uyumlu** katmanlar.
-- **Opsiyonel log pipeline** - IOksLogWriter yoksa bile kod kırılmaz.
-- **EF Core tabanlı repository & unit of work**.
-- **Action başlamadan çalışan validation & filter mimarisi**.
+Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
 ---
+## Temel yapı taşları
 
-## Log Tipleri
-
-OKS şu log kategorilerini destekler:
-
-| Log Tipi      | Açıklama |
-|---------------|----------|
-| **Request**   | Tüm HTTP istekleri (path, method, status, süre, client ip, vs.) |
-| **Exception** | Global yakalanmamış hatalar |
-| **Performance** | Controller action süreleri ve threshold aşımı |
-| **RateLimit** | Rate limit ihlalleri (429) |
-| **Repository** | EfRead/EfWrite operasyon süreleri (Read/Write) |
-| **Audit**     | Entity Insert / Update / Delete değişiklikleri |
-| **Custom**    | Kod içinden IOksLogWriter ile atılan özel loglar |
-
-Bu logların hepsi **opsiyoneldir**. Hangi log tipini kullanmak istiyorsan sadece onun DI extension'ını çağırırsın.
+- **Tamamen modüler**: Yalnızca eklediğin extension ve servisler devreye girer.
+- **SOLID & Clean Architecture uyumu**: Katmanlı tasarım ve arayüzler ile esnek kullanım.
+- **Opsiyonel log pipeline**: IOksLogWriter yoksa bile kod kırılmaz; eklediğinde tüm log çeşitleri otomatik çalışır.
+- **EF Core tabanlı repository & unit of work**: Okuma-yazma ayrımı, audit ve soft delete desteği.
+- **Action öncesi validation & filter mimarisi**: FluentValidation ile entegre, attribute ile aç/kapat esnekliği.
 
 ---
+## Başlangıç noktası
 
-## Log Tabloları ve Migration
+- Frameworkü hızla kurmak için ilgili **Usage** dokümanındaki proje referanslarını, `DbContext` konfigürasyonunu ve DI eklentilerini doğrudan kopyala.
+- Logging tabloları, unit of work filtresi, validation ve repository örnekleri için yukarıdaki özellik bağlantılarını takip et.
 
-`Oks.Logging.EfCore` içerisinde aşağıdaki log tabloları tanımlıdır:
-
-- `OksLogRequest`
-- `OksLogException`
-- `OksLogPerformance`
-- `OksLogRateLimit`
-- `OksLogRepository`
-- `OksLogAudit`
-- `OksLogCustom`
-
-`ModelBuilderExtensions.AddOksLogging(modelBuilder)` çağrıldığında bu tablolar EF modeline dahil olur.
-
-### DbContext içinde ModelBuilder Konfigürasyonu
-
-```csharp
-using Microsoft.EntityFrameworkCore;
-using Oks.Logging.EfCore;
-
-public class AppDbContext : DbContext
-{
-    public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options)
-    {
-    }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        // OKS log tabloları
-        modelBuilder.AddOksLogging();
-    }
-}
-```
+OKS ile ihtiyacın olan bileşeni seçip ekleyebilir, diğerlerini devre dışı bırakabilirsin.
