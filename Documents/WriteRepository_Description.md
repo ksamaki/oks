@@ -1,5 +1,7 @@
 # Write Repository & Unit of Work - Description
 
+[Ana sayfa](../README.md)
+
 Yazma operasyonları için OKS, `IWriteRepository<TEntity, TKey>` ve `EfUnitOfWork` kombinasyonunu sunar. HTTP pipeline'a eklenen `OksUnitOfWorkFilter`, action sonunda otomatik `SaveChangesAsync` çağırır; gerekirse `[OksTransactional]` veya `[OksSkipTransaction]` attribute'larıyla davranış kontrol edilir.
 
 ## Başlıca bileşenler

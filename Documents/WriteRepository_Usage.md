@@ -1,5 +1,7 @@
 # Write Repository & Unit of Work - Usage
 
+[Write Repository & Unit of Work - Description](WriteRepository_Description.md) | [Ana sayfa](../README.md)
+
 Aşağıdaki adımları kopyalayarak yazma repository katmanını transaction filtreleriyle birlikte devreye alabilirsin.
 
 ## 1) Proje referanslarını ekle (`.csproj`)
