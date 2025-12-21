@@ -107,4 +107,29 @@ Add-Migration InitOksLogs
 Update-Database
 ```
 
+## 6) Attribute ile sınıf/metot bazında skip
+Performans veya rate limit loglarını ihtiyaç halinde sınıf ya da metot bazında bypass edebilirsin. Skip edildiğinde işlem devam eder, log kaydında `SkipEnforced = true` olarak işaretlenir.
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using Oks.Web.Abstractions.Attributes;
+
+[ApiController]
+[Route("api/[controller]")]
+[OksSkipPerformance] // Tüm action'larda performance threshold kontrolünü pas geçer
+public class HealthController : ControllerBase
+{
+    [HttpGet]
+    [OksSkipRateLimit] // Sadece bu action rate limiting'i ve buna bağlı logu skip eder
+    public IActionResult Ping() => Ok("pong");
+
+    [HttpGet("heavy")]
+    public IActionResult Heavy()
+    {
+        // Bu action sınıf seviyesindeki OksSkipPerformance nedeniyle threshold'a takılmaz
+        return Ok("still measured but skip enforced");
+    }
+}
+```
+
 Bu adımların ardından tüm log kategorileri otomatik olarak çalışır; ihtiyacına göre servis kayıtlarını açıp kapatabilirsin.
