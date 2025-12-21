@@ -2,6 +2,8 @@
 
 Bu doküman, OKS framework bileşenlerini projene nasıl ekleyeceğini ve başlıca yetenekleri nasıl kullanacağını adım adım gösterir. Tüm paketler **opsiyonel**dir; yalnızca ihtiyacın olan modülü eklemen yeterli.
 
+> Navigasyon: [Açıklama](OKS_DESCRIPTION.md) | [README](README.md)
+
 ## Temel Bileşenler
 - `Oks.Domain`: Base entity tipleri (`Entity`, `AuditedEntity`, `IAuditedEntity`).
 - `Oks.Shared`: Ortak sonuç modelleri (`Result`, `DataResult`, `PagedDataResult`).

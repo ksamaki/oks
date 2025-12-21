@@ -20,6 +20,7 @@ gibi altyapıları, **tek satır konfigurasyon ile kullanılabilir** hale getirm
 
 ## Kullanım Kılavuzu
 
+- Proje açıklaması ve bileşen özeti: [OKS_DESCRIPTION.md](OKS_DESCRIPTION.md)
 - Detaylı kullanım ve örnek kodlar: [OKS_USAGE.md](OKS_USAGE.md)
 
 ---
