@@ -25,6 +25,11 @@ OKS logging modülü; Request, Exception, Performance, RateLimit, Repository, Au
 
 `ModelBuilderExtensions.AddOksLogging(modelBuilder)` çağrıldığında bu tablolar EF modeline dahil olur ve standart EF Core migration'larına eklenir.
 
+## Attribute desteği
+- `[OksPerformance(ThresholdMilliseconds = 200)]` ile action bazında performans eşiği belirleyebilirsin.
+- `[OksRateLimit(MaxRequests = 10, WindowSeconds = 60)]` ile belirli uçlara özel hız limiti koyabilirsin.
+- `[OksSkipPerformance]` veya `[OksSkipRateLimit]` attribute'ları belirli sınıf/metotlarda ilgili logu devre dışı bırakır fakat işlem çalışmaya devam eder.
+
 ---
 ## Usage
 

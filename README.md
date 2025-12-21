@@ -9,19 +9,22 @@ Amaç; yeni projelerde tekrar tekrar yazılan logging, rate limiting, validation
 
 Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal detayları açıklar, **Usage** dosyası ise kopyala-yapıştır ile projene ekleyebileceğin kod parçalarını içerir.
 
-- **Read-only Repository**: [ReadRepository_Description.md](ReadRepository_Description.md)
-- **Write Repository & Unit of Work**: [WriteRepository_Description.md](WriteRepository_Description.md)
-- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Logging_Description.md)
-- **Validation (FluentValidation)**: [Validation_Description.md](Validation_Description.md)
+- **Read-only Repository**: [ReadRepository_Description.md](Documents/ReadRepository_Description.md)
+- **Write Repository & Unit of Work**: [WriteRepository_Description.md](Documents/WriteRepository_Description.md)
+- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Documents/Logging_Description.md)
+- **Validation (FluentValidation)**: [Validation_Description.md](Documents/Validation_Description.md)
 
 Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
 ---
 ## Temel yapı taşları
 
+- **Oks.Domain**: Base entity tipleri (`Entity`, `AuditedEntity`, `IAuditedEntity`).
+- **Oks.Shared**: Ortak sonuç modelleri (`Result`, `DataResult`, `PagedDataResult`).
+- **Oks.Persistence.Abstractions / Oks.Persistence.EfCore**: Repository, unit of work, audit ve soft delete altyapısı.
 - **Tamamen modüler**: Yalnızca eklediğin extension ve servisler devreye girer.
 - **SOLID & Clean Architecture uyumu**: Katmanlı tasarım ve arayüzler ile esnek kullanım.
-- **Opsiyonel log pipeline**: IOksLogWriter yoksa bile kod kırılmaz; eklediğinde tüm log çeşitleri otomatik çalışır.
+- **Opsiyonel log pipeline**: IOksLogWriter yoksa bile kod kırılmaz; eklendiğinde tüm log çeşitleri otomatik çalışır.
 - **EF Core tabanlı repository & unit of work**: Okuma-yazma ayrımı, audit ve soft delete desteği.
 - **Action öncesi validation & filter mimarisi**: FluentValidation ile entegre, attribute ile aç/kapat esnekliği.
 

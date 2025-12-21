@@ -6,6 +6,7 @@ OKS read-only repository katmanı, veri okumayı yazma işlerinden ayırarak CQR
 - **Oks.Persistence.Abstractions**: `IReadRepository` arabirimi ve ortak modeller.
 - **Oks.Persistence.EfCore**: EF Core implementasyonu, DbContext taban sınıfı (`OksDbContextBase`) ve soft delete + audit alt yapısı.
 - **Oks.Web.Abstractions**: HTTP pipeline için ortak filtre/attribute sözleşmeleri.
+- **Oks.Domain**: `Entity`, `AuditedEntity` ve `IAuditedEntity` taban tipleri ile veri modelini standardize eder.
 
 ## Ne zaman kullanılır?
 - Sadece okuma yapan API uçları için hafif ve güvenli repository erişimi istediğinde.

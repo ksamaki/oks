@@ -105,4 +105,6 @@ public class ProductsController : ControllerBase
 }
 ```
 
+> İpucu: `[OksTransactional]` attribute'u sınıf seviyesine koyarak tüm action'larda commit'i zorunlu kılabilir, `[OksSkipTransaction]` ile belirli controller'larda unit of work filtresini tamamen devre dışı bırakabilirsin.
+
 Bu yapı yazma işlemlerini transaction güvenliği, audit ve soft delete ile birlikte getirir.

@@ -76,7 +76,28 @@ app.MapControllers();
 app.Run();
 ```
 
-## 4) Custom log yazımı
+## 4) Attribute ile aksiyon bazlı hız limiti ve performans eşiği
+Küresel ayarların yanında her controller/action için farklı limitler ya da özel eşikler verebilirsin.
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using Oks.Web.Abstractions.Attributes;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DemoController : ControllerBase
+{
+    [HttpGet("fast")]
+    [OksPerformance(ThresholdMilliseconds = 200)] // Bu action için 200 ms eşik
+    public IActionResult FastEndpoint() => Ok("measured against 200ms");
+
+    [HttpGet("limited")]
+    [OksRateLimit(MaxRequests = 10, WindowSeconds = 60)] // Dakikada 10 istek limiti
+    public IActionResult LimitedEndpoint() => Ok("rate-limited");
+}
+```
+
+## 5) Custom log yazımı
 ```csharp
 using Oks.Logging.Abstractions.Enums;
 using Oks.Logging.Abstractions.Interfaces;
@@ -101,13 +122,13 @@ public class DemoService
 }
 ```
 
-## 5) Migration komutları
+## 6) Migration komutları
 ```powershell
 Add-Migration InitOksLogs
 Update-Database
 ```
 
-## 6) Attribute ile sınıf/metot bazında skip
+## 7) Attribute ile sınıf/metot bazında skip
 Performans veya rate limit loglarını ihtiyaç halinde sınıf ya da metot bazında bypass edebilirsin. Skip edildiğinde işlem devam eder, log kaydında `SkipEnforced = true` olarak işaretlenir.
 
 ```csharp

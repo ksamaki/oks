@@ -6,6 +6,7 @@ Yazma operasyonları için OKS, `IWriteRepository<TEntity, TKey>` ve `EfUnitOfWo
 - **Oks.Persistence.Abstractions**: `IWriteRepository`, unit of work ve transaction kontratları.
 - **Oks.Persistence.EfCore**: EF Core implementasyonları, audit ve soft delete desteği.
 - **Oks.Web**: Unit of work filter'ı ve transaction attribute'ları.
+- **Oks.Domain**: `Entity`, `AuditedEntity` ve `IAuditedEntity` taban tipleri ile audit alanlarını standartlaştırır.
 
 ## Neler sağlar?
 - Action sonunda otomatik commit, yazma olmadığında boş commit yapılmaz.
