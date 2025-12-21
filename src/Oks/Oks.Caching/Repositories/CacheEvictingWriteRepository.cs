@@ -1,14 +1,10 @@
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Oks.Caching.Abstractions;
 using Oks.Caching.Tags;
 using Oks.Domain.Base;
-using Oks.Logging.Abstractions.Interfaces;
 using Oks.Persistence.Abstractions.Repositories;
-using Oks.Persistence.EfCore;
-using Oks.Persistence.EfCore.Options;
-using Oks.Persistence.EfCore.Repositories;
 
 namespace Oks.Caching.Repositories;
 
@@ -16,21 +12,18 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
     : IWriteRepository<TEntity, TKey>
     where TEntity : Entity<TKey>
 {
-    private readonly EfWriteRepository<TEntity, TKey> _inner;
+    private readonly IWriteRepository<TEntity, TKey> _inner;
     private readonly ICacheService _cacheService;
     private readonly ICacheKeyBuilder _keyBuilder;
     private readonly CacheEntryOptions _defaults;
 
     public CacheEvictingWriteRepository(
-        DbContext dbContext,
-        WriteTracker writeTracker,
+        [FromKeyedServices("base")] IWriteRepository<TEntity, TKey> inner,
         ICacheService cacheService,
         ICacheKeyBuilder keyBuilder,
-        IOksLogWriter? logWriter = null,
-        IOptions<OksRepositoryLoggingOptions>? repoLogOptions = null,
         IOptions<OksCachingOptions>? cachingOptions = null)
     {
-        _inner = new EfWriteRepository<TEntity, TKey>(dbContext, writeTracker, logWriter, repoLogOptions);
+        _inner = inner;
         _cacheService = cacheService;
         _keyBuilder = keyBuilder;
         _defaults = cachingOptions?.Value.DefaultEntryOptions ?? new CacheEntryOptions

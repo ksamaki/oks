@@ -22,8 +22,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
         // Generic repository implementasyonları
-        services.AddScoped(typeof(IReadRepository<,>), typeof(EfReadRepository<,>));
-        services.AddScoped(typeof(IWriteRepository<,>), typeof(EfWriteRepository<,>));
+        services.AddKeyedScoped(typeof(IReadRepository<,>), "base", typeof(EfReadRepository<,>));
+        services.AddKeyedScoped(typeof(IWriteRepository<,>), "base", typeof(EfWriteRepository<,>));
+
+        // Varsayılan kayıt, keyed "base" implementasyonunu kullanır. Cache dekoratörü
+        // gibi eklentiler bu default kaydı Replace ile sarabilir.
+        services.AddScoped(typeof(IReadRepository<,>), sp =>
+            sp.GetRequiredKeyedService(typeof(IReadRepository<,>), "base"));
+
+        services.AddScoped(typeof(IWriteRepository<,>), sp =>
+            sp.GetRequiredKeyedService(typeof(IWriteRepository<,>), "base"));
 
         return services;
     }

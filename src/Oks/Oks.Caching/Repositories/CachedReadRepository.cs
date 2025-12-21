@@ -1,13 +1,10 @@
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Oks.Caching.Abstractions;
 using Oks.Caching.Tags;
 using Oks.Domain.Base;
-using Oks.Logging.Abstractions.Interfaces;
 using Oks.Persistence.Abstractions.Repositories;
-using Oks.Persistence.EfCore.Options;
-using Oks.Persistence.EfCore.Repositories;
 
 namespace Oks.Caching.Repositories;
 
@@ -15,20 +12,18 @@ public class CachedReadRepository<TEntity, TKey>
     : IReadRepository<TEntity, TKey>
     where TEntity : Entity<TKey>
 {
-    private readonly EfReadRepository<TEntity, TKey> _inner;
+    private readonly IReadRepository<TEntity, TKey> _inner;
     private readonly ICacheService _cacheService;
     private readonly ICacheKeyBuilder _keyBuilder;
     private readonly CacheEntryOptions _defaults;
 
     public CachedReadRepository(
-        DbContext dbContext,
+        [FromKeyedServices("base")] IReadRepository<TEntity, TKey> inner,
         ICacheService cacheService,
         ICacheKeyBuilder keyBuilder,
-        IOptions<OksCachingOptions>? cachingOptions = null,
-        IOksLogWriter? logWriter = null,
-        IOptions<OksRepositoryLoggingOptions>? repoLogOptions = null)
+        IOptions<OksCachingOptions>? cachingOptions = null)
     {
-        _inner = new EfReadRepository<TEntity, TKey>(dbContext, logWriter, repoLogOptions);
+        _inner = inner;
         _cacheService = cacheService;
         _keyBuilder = keyBuilder;
         _defaults = cachingOptions?.Value.DefaultEntryOptions ?? new CacheEntryOptions
