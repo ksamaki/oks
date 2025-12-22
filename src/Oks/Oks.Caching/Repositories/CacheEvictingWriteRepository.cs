@@ -27,7 +27,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         IOptions<OksCachingOptions>? cachingOptions = null)
     {
         _inner = inner;
-        _cacheService = cacheService;
+        _cache_service = cacheService;
         _keyBuilder = keyBuilder;
         _defaults = cachingOptions?.Value.DefaultEntryOptions ?? new CacheEntryOptions
         {
@@ -48,7 +48,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), cacheable);
 
-        return await _cacheService.GetOrAddAsync(key,
+        return await _cache_service.GetOrAddAsync(key,
             () => _inner.GetByIdAsync(id, cancellationToken),
             options,
             cancellationToken);
@@ -65,7 +65,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
 
-        return await _cacheService.GetOrAddAsync(key,
+        return await _cache_service.GetOrAddAsync(key,
             () => _inner.GetListAsync(predicate, cancellationToken),
             options,
             cancellationToken);
@@ -91,7 +91,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
     private async Task EvictAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        var tags = new HashSet<string>(CacheTagHelper.ForEntity(entity));
+        var tags = new HashSet<string>(CacheTagHelper.ForEntity<TEntity, TKey>(entity));
 
         foreach (var attribute in ResolveCacheEvictAttributes())
         {
@@ -109,7 +109,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         foreach (var tag in tags)
         {
-            await _cacheService.RemoveByTagAsync(tag, cancellationToken);
+            await _cache_service.RemoveByTagAsync(tag, cancellationToken);
         }
     }
 
@@ -160,7 +160,6 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
             ? tags.Concat(cacheable.Tags).Distinct().ToArray()
             : tags.ToArray();
 
-        // FIX: cacheable.DurationSeconds is an int. Previously code used .Value which caused compilation errors.
         var absolute = cacheable != null
             ? TimeSpan.FromSeconds(cacheable.DurationSeconds)
             : _defaults.AbsoluteExpirationRelativeToNow;
