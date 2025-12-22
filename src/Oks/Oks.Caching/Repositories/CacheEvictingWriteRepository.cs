@@ -27,8 +27,8 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         IOptions<OksCachingOptions>? cachingOptions = null)
     {
         _inner = inner;
-        _cacheService = cacheService;
-        _key_builder = keyBuilder;
+        _cache_service = cacheService;
+        _keyBuilder = keyBuilder;
         _defaults = cachingOptions?.Value.DefaultEntryOptions ?? new CacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
@@ -44,11 +44,11 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         var cacheable = ResolveCacheableAttribute();
         var key = cacheable?.KeyTemplate is { Length: > 0 }
             ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, new { id })
-            : _key_builder.ForRead<TEntity>("GetById", new { id });
+            : _keyBuilder.ForRead<TEntity>("GetById", new { id });
 
         var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), cacheable);
 
-        return await _cacheService.GetOrAddAsync(key,
+        return await _cache_service.GetOrAddAsync(key,
             () => _inner.GetByIdAsync(id, cancellationToken),
             options,
             cancellationToken);
@@ -60,8 +60,8 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
     {
         var cacheable = ResolveCacheableAttribute();
         var key = cacheable?.KeyTemplate is { Length: > 0 }
-            ? _key_builder.FromTemplate(cacheable.KeyTemplate, predicate?.ToString())
-            : _key_builder.ForRead<TEntity>("GetList", predicate?.ToString());
+            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, predicate?.ToString())
+            : _keyBuilder.ForRead<TEntity>("GetList", predicate?.ToString());
 
         var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
 
@@ -91,7 +91,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
     private async Task EvictAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        var tags = new HashSet<string>(CacheTagHelper.ForEntity(entity));
+        var tags = new HashSet<string>(CacheTagHelper.ForEntity<TEntity, TKey>(entity));
 
         foreach (var attribute in ResolveCacheEvictAttributes())
         {
@@ -160,7 +160,6 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
             ? tags.Concat(cacheable.Tags).Distinct().ToArray()
             : tags.ToArray();
 
-        // FIX: cacheable.DurationSeconds is an int. Previously code used .Value which caused compilation errors.
         var absolute = cacheable != null
             ? TimeSpan.FromSeconds(cacheable.DurationSeconds)
             : _defaults.AbsoluteExpirationRelativeToNow;
