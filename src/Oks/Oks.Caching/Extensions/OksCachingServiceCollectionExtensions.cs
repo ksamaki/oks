@@ -20,6 +20,12 @@ public static class OksCachingServiceCollectionExtensions
         services.TryAddSingleton<ICacheTagIndex, InMemoryCacheTagIndex>();
         services.TryAddSingleton<ICacheService, CacheService>();
 
+        services.TryAddScoped(typeof(CachedReadRepository<,>));
+        services.TryAddScoped(typeof(CacheEvictingWriteRepository<,>));
+
+        services.Replace(ServiceDescriptor.Scoped(typeof(IReadRepository<,>), typeof(CachedReadRepository<,>)));
+        services.Replace(ServiceDescriptor.Scoped(typeof(IWriteRepository<,>), typeof(CacheEvictingWriteRepository<,>)));
+
         if (configure is not null)
         {
             services.Configure(configure);
@@ -32,14 +38,6 @@ public static class OksCachingServiceCollectionExtensions
         this IServiceCollection services,
         Action<OksCachingOptions>? configure = null)
     {
-        services.AddOksCaching(configure);
-
-        services.TryAddScoped(typeof(CachedReadRepository<,>));
-        services.TryAddScoped(typeof(CacheEvictingWriteRepository<,>));
-
-        services.Replace(ServiceDescriptor.Scoped(typeof(IReadRepository<,>), typeof(CachedReadRepository<,>)));
-        services.Replace(ServiceDescriptor.Scoped(typeof(IWriteRepository<,>), typeof(CacheEvictingWriteRepository<,>)));
-
-        return services;
+        return services.AddOksCaching(configure);
     }
 }

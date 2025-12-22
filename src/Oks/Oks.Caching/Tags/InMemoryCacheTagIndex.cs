@@ -30,6 +30,11 @@ public sealed class InMemoryCacheTagIndex : ICacheTagIndex
         foreach (var kvp in _tagToKeys)
         {
             kvp.Value.TryRemove(key, out _);
+
+            if (kvp.Value.IsEmpty)
+            {
+                _tagToKeys.TryRemove(kvp.Key, out _);
+            }
         }
     }
 

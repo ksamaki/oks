@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Oks.Caching.Abstractions;
@@ -38,8 +40,12 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
     public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
-        var key = _keyBuilder.ForRead<TEntity>("GetById", new { id });
-        var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id));
+        var cacheable = ResolveCacheableAttribute();
+        var key = cacheable?.KeyTemplate is { Length: > 0 }
+            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, new { id })
+            : _keyBuilder.ForRead<TEntity>("GetById", new { id });
+
+        var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), cacheable);
 
         return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetByIdAsync(id, cancellationToken),
@@ -51,8 +57,12 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
-        var key = _keyBuilder.ForRead<TEntity>("GetList", predicate?.ToString());
-        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>());
+        var cacheable = ResolveCacheableAttribute();
+        var key = cacheable?.KeyTemplate is { Length: > 0 }
+            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, predicate?.ToString())
+            : _keyBuilder.ForRead<TEntity>("GetList", predicate?.ToString());
+
+        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
 
         return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetListAsync(predicate, cancellationToken),
@@ -86,15 +96,45 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         }
     }
 
-    private CacheEntryOptions WithTags(IReadOnlyCollection<string> tags)
+    private CacheableAttribute? ResolveCacheableAttribute()
     {
+        var trace = new StackTrace();
+        foreach (var frame in trace.GetFrames() ?? Array.Empty<StackFrame>())
+        {
+            var method = frame.GetMethod();
+            if (method is null)
+                continue;
+
+            if (method.DeclaringType?.Assembly == typeof(CacheEvictingWriteRepository<,>).Assembly)
+                continue;
+
+            var attribute = method.GetCustomAttribute<CacheableAttribute>(inherit: true);
+            if (attribute is not null)
+                return attribute;
+        }
+
+        return null;
+    }
+
+    private CacheEntryOptions WithTags(
+        IReadOnlyCollection<string> tags,
+        CacheableAttribute? cacheable)
+    {
+        var mergedTags = cacheable?.Tags is { Length: > 0 }
+            ? tags.Concat(cacheable.Tags).Distinct().ToArray()
+            : tags.ToArray();
+
+        var absolute = cacheable?.DurationSeconds is not null
+            ? TimeSpan.FromSeconds(cacheable.DurationSeconds.Value)
+            : _defaults.AbsoluteExpirationRelativeToNow;
+
         return new CacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = _defaults.AbsoluteExpirationRelativeToNow,
+            AbsoluteExpirationRelativeToNow = absolute,
             SlidingExpiration = _defaults.SlidingExpiration,
             SoftExpiration = _defaults.SoftExpiration,
             Priority = _defaults.Priority,
-            Tags = tags.ToArray()
+            Tags = mergedTags
         };
     }
 }

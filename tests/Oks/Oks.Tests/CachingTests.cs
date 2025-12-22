@@ -78,4 +78,39 @@ public class CachingTests
         var refreshed = await readRepo.GetByIdAsync(1);
         refreshed!.Name.Should().Be("Updated");
     }
+
+    [Fact]
+    [Cacheable(KeyTemplate: "tests:user:{id}", DurationSeconds: 30, Tags = new[] { "feature" })]
+    public async Task CacheableAttribute_Should_Influence_Cache()
+    {
+        var services = new ServiceCollection();
+        services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddOksEfCore<TestDbContext>();
+        services.AddOksCaching();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var sp = scope.ServiceProvider;
+
+        var writeRepo = sp.GetRequiredService<IWriteRepository<TestUser, int>>();
+        var readRepo = sp.GetRequiredService<IReadRepository<TestUser, int>>();
+        var uow = sp.GetRequiredService<IUnitOfWork>();
+        var tags = sp.GetRequiredService<ICacheTagIndex>();
+
+        await writeRepo.AddAsync(new TestUser { Name = "Initial" });
+        await uow.SaveChangesAsync();
+
+        var cached = await readRepo.GetByIdAsync(1);
+        cached.Should().NotBeNull();
+
+        tags.KeysFor("feature").Should().NotBeEmpty();
+        tags.KeysFor(nameof(TestUser)).Should().NotBeEmpty();
+
+        cached!.Name = "Changed";
+        writeRepo.Update(cached);
+        await uow.SaveChangesAsync();
+
+        tags.KeysFor("feature").Should().BeEmpty();
+        tags.KeysFor(nameof(TestUser)).Should().BeEmpty();
+    }
 }
