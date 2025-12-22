@@ -19,6 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Oks\Oks.Caching.Abstractions\Oks.Caching.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\src\Oks\Oks.Caching\Oks.Caching.csproj" />
     <ProjectReference Include="..\..\..\src\Oks\Oks.Domain\Oks.Domain.csproj" />
     <ProjectReference Include="..\..\..\src\Oks\Oks.Persistence.Abstractions\Oks.Persistence.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\src\Oks\Oks.Persistence.EfCore\Oks.Persistence.EfCore.csproj" />
