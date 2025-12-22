@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Oks.Caching.Abstractions;
@@ -90,7 +91,23 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
     private async Task EvictAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        foreach (var tag in CacheTagHelper.ForEntity(entity))
+        var tags = new HashSet<string>(CacheTagHelper.ForEntity(entity));
+
+        foreach (var attribute in ResolveCacheEvictAttributes())
+        {
+            foreach (var tag in attribute.Tags)
+            {
+                tags.Add(tag);
+            }
+
+            if (attribute.EvictAllEntityCache)
+            {
+                tags.Add(typeof(TEntity).Name);
+                tags.Add($"Query:{typeof(TEntity).Name}");
+            }
+        }
+
+        foreach (var tag in tags)
         {
             await _cacheService.RemoveByTagAsync(tag, cancellationToken);
         }
@@ -114,6 +131,25 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         }
 
         return null;
+    }
+
+    private IEnumerable<CacheEvictAttribute> ResolveCacheEvictAttributes()
+    {
+        var trace = new StackTrace();
+        foreach (var frame in trace.GetFrames() ?? Array.Empty<StackFrame>())
+        {
+            var method = frame.GetMethod();
+            if (method is null)
+                continue;
+
+            if (method.DeclaringType?.Assembly == typeof(CacheEvictingWriteRepository<,>).Assembly)
+                continue;
+
+            foreach (var attribute in method.GetCustomAttributes<CacheEvictAttribute>(inherit: true))
+            {
+                yield return attribute;
+            }
+        }
     }
 
     private CacheEntryOptions WithTags(
