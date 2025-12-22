@@ -142,6 +142,9 @@ public class CacheService : ICacheService
         if (!_memoryCache.TryGetValue(key.Value, out CacheEnvelope<T>? envelope))
             return new CacheLookupResult<T>(default, shouldRefresh: false);
 
+        if (envelope is null)
+            return new CacheLookupResult<T>(default, shouldRefresh: false);
+
         var shouldRefresh = envelope.SoftExpiration.HasValue &&
                             DateTimeOffset.UtcNow - envelope.CreatedAtUtc >= envelope.SoftExpiration.Value;
 
