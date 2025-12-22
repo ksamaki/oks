@@ -27,7 +27,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         IOptions<OksCachingOptions>? cachingOptions = null)
     {
         _inner = inner;
-        _cache_service = cacheService;
+        _cacheService = cacheService;
         _keyBuilder = keyBuilder;
         _defaults = cachingOptions?.Value.DefaultEntryOptions ?? new CacheEntryOptions
         {
@@ -48,7 +48,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), cacheable);
 
-        return await _cache_service.GetOrAddAsync(key,
+        return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetByIdAsync(id, cancellationToken),
             options,
             cancellationToken);
@@ -65,7 +65,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
 
-        return await _cache_service.GetOrAddAsync(key,
+        return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetListAsync(predicate, cancellationToken),
             options,
             cancellationToken);
@@ -109,7 +109,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         foreach (var tag in tags)
         {
-            await _cache_service.RemoveByTagAsync(tag, cancellationToken);
+            await _cacheService.RemoveByTagAsync(tag, cancellationToken);
         }
     }
 

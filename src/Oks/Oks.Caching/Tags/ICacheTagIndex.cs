@@ -1,3 +1,5 @@
+using Oks.Caching.Abstractions;
+
 namespace Oks.Caching.Tags;
 
 public interface ICacheTagIndex
