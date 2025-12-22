@@ -100,8 +100,9 @@ public class CachedReadRepository<TEntity, TKey>
             ? tags.Concat(cacheable.Tags).Distinct().ToArray()
             : tags.ToArray();
 
-        var absolute = cacheable?.DurationSeconds is not null
-            ? TimeSpan.FromSeconds(cacheable.DurationSeconds.Value)
+        // FIX: cacheable.DurationSeconds is an int. Previously code used .Value which caused compilation errors.
+        var absolute = cacheable != null
+            ? TimeSpan.FromSeconds(cacheable.DurationSeconds)
             : _defaults.AbsoluteExpirationRelativeToNow;
 
         return new CacheEntryOptions
