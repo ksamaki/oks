@@ -4,8 +4,8 @@ Bu doküman, OKS frameworküne **nuget paketi olarak eklenebilir** bir cache yet
 
 ## Tasarım hedefleri
 - **Opsiyonel paket**: Sadece ilgili NuGet paketi referans edildiğinde devreye girmeli.
-- **Attribute ile self-service**: Okuma tarafında cache'e alma, yazma tarafında yırtma senaryoları attribute/filtreden otomatik çalışmalı.
-- **Read vs Write ayrımı**: Read-only repository çıktıları cache'lensin; Write repository ve Domain event'leri yırtma tetiklesin.
+- **Attribute ile self-service**: Okuma tarafında cache'e alma, yazma tarafında yırtma senaryoları attribute/filtreden otomatik çalışmalı. Attribute eklenmeden cache'e alma çalışmasın.
+- **Read vs Write ayrımı**: Read-only repository çıktıları cache'lensin; Write repository ve Domain event'leri yırtma tetiklesin. Yırtma tetiklemesi için attribute gerek olmadan çalışsın. Var olan Readrepository işlemlerinde attribute varsa cache'e alma, var olan WriteRepository işlemlerinde UnitOfWork complate yapıldığında yırtma yapılsın.
 - **Sağlam cache anahtarları**: Tekil sorgular, listeleme, sayfalama ve custom query için deterministik cache key formatı.
 - **Provider bağımsız**: `IMemoryCache` (in-memory) ve `IDistributedCache` (Redis) adaptörleriyle çalışabilir. Gelecekte başka provider'lar (Memcached, SQL) eklenebilir.
 - **Thread-safe & TTL destekli**: Concurrency'de cache stampede önleyici mekanizmalar (lock + kısa süreli "soft-TTL"), mutabakatlı süre sonu (absolute + sliding expiration).
