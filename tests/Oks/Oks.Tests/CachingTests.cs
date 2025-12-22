@@ -80,7 +80,7 @@ public class CachingTests
     }
 
     [Fact]
-    [Cacheable(KeyTemplate: "tests:user:{id}", DurationSeconds: 30, Tags = new[] { "feature" })]
+    [Cacheable(KeyTemplate= "tests:user:{id}", DurationSeconds= 30, Tags = new[] { "feature" })]
     public async Task CacheableAttribute_Should_Influence_Cache()
     {
         var services = new ServiceCollection();
@@ -115,7 +115,7 @@ public class CachingTests
     }
 
     [Fact]
-    [Cacheable(DurationSeconds: 60, Tags = new[] { "flush" })]
+    [Cacheable(DurationSeconds = 60, Tags = new[] { "flush" })]
     [CacheEvict(Tags = new[] { "flush" }, EvictAllEntityCache = true)]
     public async Task CacheEvictAttribute_Should_Remove_Custom_Tags()
     {
