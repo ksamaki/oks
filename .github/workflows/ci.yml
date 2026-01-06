@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore
+        run: |
+          dotnet restore src/Oks/Oks.Domain/Oks.Domain.csproj
+          dotnet restore src/Oks/Oks.Shared/Oks.Shared.csproj
+          dotnet restore src/Oks/Oks.Caching/Oks.Caching.csproj
+          dotnet restore src/Oks/Oks.Caching.Abstractions/Oks.Caching.Abstractions.csproj
+          dotnet restore src/Oks/Oks.Logging/Oks.Logging.csproj
+          dotnet restore src/Oks/Oks.Logging.Abstractions/Oks.Logging.Abstractions.csproj
+          dotnet restore src/Oks/Oks.Logging.EfCore/Oks.Logging.EfCore.csproj
+          dotnet restore src/Oks/Oks.Persistence.Abstractions/Oks.Persistence.Abstractions.csproj
+          dotnet restore src/Oks/Oks.Persistence.EfCore/Oks.Persistence.EfCore.csproj
+          dotnet restore src/Oks/Oks.Web/Oks.Web.csproj
+          dotnet restore src/Oks/Oks.Web.Abstractions/Oks.Web.Abstractions.csproj
+          dotnet restore src/Oks/Oks.Web.Validation/Oks.Web.Validation.csproj
+          dotnet restore src/waitme/WaitMe.HelloService/WaitMe.HelloService.csproj
+      - name: Build
+        run: |
+          dotnet build src/Oks/Oks.Domain/Oks.Domain.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Shared/Oks.Shared.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Caching/Oks.Caching.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Caching.Abstractions/Oks.Caching.Abstractions.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Logging/Oks.Logging.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Logging.Abstractions/Oks.Logging.Abstractions.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Logging.EfCore/Oks.Logging.EfCore.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Persistence.Abstractions/Oks.Persistence.Abstractions.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Persistence.EfCore/Oks.Persistence.EfCore.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Web/Oks.Web.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Web.Abstractions/Oks.Web.Abstractions.csproj --configuration Release --no-restore
+          dotnet build src/Oks/Oks.Web.Validation/Oks.Web.Validation.csproj --configuration Release --no-restore
+          dotnet build src/waitme/WaitMe.HelloService/WaitMe.HelloService.csproj --configuration Release --no-restore
+      - name: Test
+        run: dotnet test tests/Oks/Oks.Tests/Oks.Tests.csproj --configuration Release --no-build

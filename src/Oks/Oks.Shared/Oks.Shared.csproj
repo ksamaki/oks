@@ -8,7 +8,6 @@
     <!-- NuGet bilgileri -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Oks.Shared</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Kursat Samaki</Authors>
     <Company>OKS</Company>
     <Description>OKS common result response wrapper library</Description>
