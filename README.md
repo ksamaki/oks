@@ -9,11 +9,11 @@ Amaç; yeni projelerde tekrar tekrar yazılan logging, rate limiting, validation
 
 Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal detayları açıklar, **Usage** dosyası ise kopyala-yapıştır ile projene ekleyebileceğin kod parçalarını içerir.
 
-- **Read-only Repository**: [ReadRepository_Description.md](Documents/ReadRepository_Description.md)
-- **Write Repository & Unit of Work**: [WriteRepository_Description.md](Documents/WriteRepository_Description.md)
-- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Documents/Logging_Description.md)
-- **Validation (FluentValidation)**: [Validation_Description.md](Documents/Validation_Description.md)
-- **Cache (Read cache + Write eviction)**: [Cache_Description.md](Documents/Cache_Description.md)
+- **Read-only Repository**: [ReadRepository_Description.md](Docs/ReadRepository_Description.md)
+- **Write Repository & Unit of Work**: [WriteRepository_Description.md](Docs/WriteRepository_Description.md)
+- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Docs/Logging_Description.md)
+- **Validation (FluentValidation)**: [Validation_Description.md](Docs/Validation_Description.md)
+- **Cache (Read cache + Write eviction)**: [Cache_Description.md](Docs/Cache_Description.md)
 
 Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
