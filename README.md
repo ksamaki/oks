@@ -11,7 +11,7 @@ Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal d
 
 - **Read-only Repository**: [ReadRepository_Description.md](Documents/ReadRepository_Description.md)
 - **Write Repository & Unit of Work**: [WriteRepository_Description.md](Documents/WriteRepository_Description.md)
-- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Documents/Logging_Description.md)
+- **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Oks/Logging_Description.md)
 - **Validation (FluentValidation)**: [Validation_Description.md](Documents/Validation_Description.md)
 - **Cache (Read cache + Write eviction)**: [Cache_Description.md](Documents/Cache_Description.md)
 
