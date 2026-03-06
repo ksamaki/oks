@@ -36,3 +36,32 @@ Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin
 - Logging tabloları, unit of work filtresi, validation ve repository örnekleri için yukarıdaki özellik bağlantılarını takip et.
 
 OKS ile ihtiyacın olan bileşeni seçip ekleyebilir, diğerlerini devre dışı bırakabilirsin.
+
+---
+## NuGet paketleme ve yayınlama (GitHub Packages)
+
+OKS modülleri bağımsız NuGet paketleri olarak yayınlanıp (versioned) farklı bir repodan (ör. WaitMe) `PackageReference` ile tüketilebilir. İlk paket seti:
+
+- `Oks.Persistence.Abstractions`
+- `Oks.Persistence.EfCore`
+- `Oks.Web.Validation`
+- `Oks.Logging.Abstractions`
+- `Oks.Logging`
+
+### Publish akışı
+
+1. Gerekli değişiklikleri `main` dalına alın.
+2. SemVer etiketi oluşturup push edin:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+3. `.github/workflows/publish.yml` iş akışı tag'i algılar, paketi üretir ve GitHub Packages'a yükler.
+
+### WaitMe tarafında tüketim
+
+- WaitMe reposunda GitHub Packages kaynağını içeren bir `nuget.config` tanımlayın.
+- İlgili OKS paketlerini `PackageReference` ile ekleyin.
+- Detaylı örnek için: `docs/waitme-consumption.md`.
