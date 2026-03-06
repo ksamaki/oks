@@ -10,9 +10,9 @@
     <Authors>Kursat Samaki</Authors>
     <Company>OKS</Company>
     <Product>Oks Framework</Product>
-    <RepositoryUrl>https://github.com/GITHUB_USERNAME/oks</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ksamaki/oks</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/GITHUB_USERNAME/oks</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ksamaki/oks</PackageProjectUrl>
     <Description>Logging infrastructure and EF Core-backed logging integrations for Oks applications.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

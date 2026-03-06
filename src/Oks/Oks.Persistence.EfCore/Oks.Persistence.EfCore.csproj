@@ -10,9 +10,9 @@
     <Authors>Kursat Samaki</Authors>
     <Company>OKS</Company>
     <Product>Oks Framework</Product>
-    <RepositoryUrl>https://github.com/GITHUB_USERNAME/oks</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ksamaki/oks</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/GITHUB_USERNAME/oks</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ksamaki/oks</PackageProjectUrl>
     <Description>Entity Framework Core implementation of Oks persistence abstractions including repository and unit of work support.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
