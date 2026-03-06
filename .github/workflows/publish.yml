@@ -24,6 +24,15 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Add GitHub Packages source
+        run: |
+          dotnet nuget add source \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
+            --store-password-in-clear-text \
+            --name github \
+            "https://nuget.pkg.github.com/ksamaki/index.json"
+
       - name: Restore
         run: dotnet restore
 
