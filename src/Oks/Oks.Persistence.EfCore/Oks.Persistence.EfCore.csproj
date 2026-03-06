@@ -4,6 +4,17 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Oks.Persistence.EfCore</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Kursat Samaki</Authors>
+    <Company>OKS</Company>
+    <Product>Oks Framework</Product>
+    <RepositoryUrl>https://github.com/GITHUB_USERNAME/oks</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/GITHUB_USERNAME/oks</PackageProjectUrl>
+    <Description>Entity Framework Core implementation of Oks persistence abstractions including repository and unit of work support.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +25,10 @@
     <ProjectReference Include="..\Oks.Domain\Oks.Domain.csproj" />
     <ProjectReference Include="..\Oks.Logging.Abstractions\Oks.Logging.Abstractions.csproj" />
     <ProjectReference Include="..\Oks.Persistence.Abstractions\Oks.Persistence.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
