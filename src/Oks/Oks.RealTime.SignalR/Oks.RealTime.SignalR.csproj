@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Oks.RealTime.SignalR</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>OKS</Authors>
+    <Company>OKS</Company>
+    <Product>Oks Framework</Product>
+    <Description>Contracts for SignalR based real-time communication and JWT-aware connection management in Oks.</Description>
+  </PropertyGroup>
+
+</Project>

@@ -14,6 +14,8 @@ Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal d
 - **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Docs/Logging_Description.md)
 - **Validation (FluentValidation)**: [Validation_Description.md](Docs/Validation_Description.md)
 - **Cache (Read cache + Write eviction)**: [Cache_Description.md](Docs/Cache_Description.md)
+- **Real-Time (SignalR + JWT connection contracts)**: [RealTimeSignalR_Description.md](Docs/RealTimeSignalR_Description.md)
+- **Location (Redis GeoSpatial proximity contracts)**: [LocationRedis_Description.md](Docs/LocationRedis_Description.md)
 
 Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
