@@ -6,6 +6,8 @@ public class OksCachingOptions
 {
     public CacheProvider Provider { get; set; } = CacheProvider.Memory;
 
+    public bool RepositoryCachingEnabled { get; set; } = true;
+
     public CacheEntryOptions DefaultEntryOptions { get; set; } = new()
     {
         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),

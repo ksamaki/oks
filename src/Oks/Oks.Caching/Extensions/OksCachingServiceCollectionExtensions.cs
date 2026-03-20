@@ -20,16 +20,32 @@ public static class OksCachingServiceCollectionExtensions
         services.TryAddSingleton<ICacheTagIndex, InMemoryCacheTagIndex>();
         services.TryAddSingleton<ICacheService, CacheService>();
 
+        var options = new OksCachingOptions();
+        configure?.Invoke(options);
+
         services.TryAddScoped(typeof(CachedReadRepository<,>));
         services.TryAddScoped(typeof(CacheEvictingWriteRepository<,>));
 
-        services.Replace(ServiceDescriptor.Scoped(typeof(IReadRepository<,>), typeof(CachedReadRepository<,>)));
-        services.Replace(ServiceDescriptor.Scoped(typeof(IWriteRepository<,>), typeof(CacheEvictingWriteRepository<,>)));
-
-        if (configure is not null)
+        if (options.RepositoryCachingEnabled)
         {
-            services.Configure(configure);
+            services.Replace(ServiceDescriptor.Scoped(typeof(IReadRepository<,>), typeof(CachedReadRepository<,>)));
+            services.Replace(ServiceDescriptor.Scoped(typeof(IWriteRepository<,>), typeof(CacheEvictingWriteRepository<,>)));
         }
+
+        services.Configure<OksCachingOptions>(configuredOptions =>
+        {
+            configuredOptions.Provider = options.Provider;
+            configuredOptions.RepositoryCachingEnabled = options.RepositoryCachingEnabled;
+            configuredOptions.DefaultEntryOptions = new CacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = options.DefaultEntryOptions.AbsoluteExpirationRelativeToNow,
+                SlidingExpiration = options.DefaultEntryOptions.SlidingExpiration,
+                SoftExpiration = options.DefaultEntryOptions.SoftExpiration,
+                Priority = options.DefaultEntryOptions.Priority,
+                Tags = options.DefaultEntryOptions.Tags.ToArray(),
+                Version = options.DefaultEntryOptions.Version
+            };
+        });
 
         return services;
     }

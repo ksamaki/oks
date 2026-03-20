@@ -16,6 +16,18 @@ namespace Oks.Tests;
 public class CachingTests
 {
     [Fact]
+    public void OksCachingOptions_Fluent_Methods_Should_Be_Available()
+    {
+        var options = new OksCachingOptions();
+
+        options.UseDistributedCache()
+               .AddReadRepositoryCaching();
+
+        options.Provider.Should().Be(CacheProvider.Distributed);
+        options.RepositoryCachingEnabled.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task CacheService_Should_Remove_By_Tag()
     {
         var service = new CacheService(
