@@ -1,17 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
-    <!-- NuGet bilgileri -->
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
     <PackageId>Oks.Shared</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Kursat Samaki</Authors>
-    <Company>OKS</Company>
-    <Description>OKS common result response wrapper library</Description>
+    <Description>Shared result and response models used across Oks modules.</Description>
   </PropertyGroup>
 
 </Project>

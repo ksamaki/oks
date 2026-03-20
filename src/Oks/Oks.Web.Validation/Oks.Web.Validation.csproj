@@ -1,21 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
     <PackageId>Oks.Web.Validation</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Kursat Samaki</Authors>
-    <Company>OKS</Company>
-    <Product>Oks Framework</Product>
-    <RepositoryUrl>https://github.com/ksamaki/oks</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/ksamaki/oks</PackageProjectUrl>
     <Description>FluentValidation integration components for Oks web applications.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="12.1.0" />
@@ -23,10 +16,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\Oks.Shared\Oks.Shared.csproj" />
     <ProjectReference Include="..\Oks.Web.Abstractions\Oks.Web.Abstractions.csproj" />
   </ItemGroup>
+
 
   <ItemGroup>
     <None Include="..\..\..\README.md" Pack="true" PackagePath="" />

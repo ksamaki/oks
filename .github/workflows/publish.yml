@@ -2,8 +2,8 @@ name: Publish NuGet Packages
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
 
 jobs:
   publish:
@@ -11,9 +11,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-
-    env:
-      PACKAGE_VERSION: ${{ github.ref_name }}
 
     steps:
       - name: Checkout
@@ -24,7 +21,13 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Add GitHub Packages source
+      - name: Setup package version
+        shell: bash
+        run: |
+          BASE_VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)
+          echo "PACKAGE_VERSION=${BASE_VERSION}-ci.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Configure GitHub Packages source
         run: |
           dotnet nuget add source \
             --username "${{ github.actor }}" \
@@ -34,13 +37,13 @@ jobs:
             "https://nuget.pkg.github.com/ksamaki/index.json"
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore src/Oks/Oks.slnx
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore /p:Version=${PACKAGE_VERSION#v}
+        run: dotnet build src/Oks/Oks.slnx --configuration Release --no-restore -p:ContinuousIntegrationBuild=true -p:Version=${{ env.PACKAGE_VERSION }}
 
       - name: Pack
-        run: dotnet pack --configuration Release --no-build /p:PackageVersion=${PACKAGE_VERSION#v} -o ./artifacts
+        run: dotnet pack src/Oks/Oks.slnx --configuration Release --no-build -p:PackageVersion=${{ env.PACKAGE_VERSION }} --output ./artifacts/packages
 
       - name: Publish to GitHub Packages
-        run: dotnet nuget push "./artifacts/*.nupkg" --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
+        run: dotnet nuget push "./artifacts/packages/*.nupkg" --source "github" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate

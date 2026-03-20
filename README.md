@@ -19,6 +19,8 @@ Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal d
 
 Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
+- GitHub Packages ile NuGet yayınlama ve tüketim rehberi: [NuGet_GitHubPackages.md](Docs/NuGet_GitHubPackages.md)
+
 ---
 ## Temel yapı taşları
 
@@ -52,15 +54,12 @@ OKS modülleri bağımsız NuGet paketleri olarak yayınlanıp (versioned) farkl
 
 ### Publish akışı
 
-1. Gerekli değişiklikleri `main` dalına alın.
-2. SemVer etiketi oluşturup push edin:
+1. Paket sürümünü `Directory.Build.props` içindeki `<Version>` alanında güncelleyin.
+2. Değişiklikleri `main` dalına gönderin.
+3. `.github/workflows/publish.yml` iş akışı restore, build, pack ve publish adımlarını otomatik çalıştırır.
+4. İş akışı, `main` için benzersiz bir CI sürümü üretir (`<Version>-ci.<run_number>`).
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-3. `.github/workflows/publish.yml` iş akışı tag'i algılar, paketi üretir ve GitHub Packages'a yükler.
+Detaylı adımlar, CLI komutları ve troubleshooting için: [Docs/NuGet_GitHubPackages.md](Docs/NuGet_GitHubPackages.md).
 
 ### WaitMe tarafında tüketim
 
