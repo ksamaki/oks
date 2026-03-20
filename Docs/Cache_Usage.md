@@ -12,15 +12,24 @@ Cache özelliğini projene eklemek için aşağıdaki adımları uygulayabilirsi
   <ProjectReference Include="..\src\Oks\Oks.Persistence.EfCore\Oks.Persistence.EfCore.csproj" />
   <ProjectReference Include="..\src\Oks\Oks.Caching.Abstractions\Oks.Caching.Abstractions.csproj" />
   <ProjectReference Include="..\src\Oks\Oks.Caching\Oks.Caching.csproj" />
-  <ProjectReference Include="..\src\Oks\Oks.Caching.Redis\Oks.Caching.Redis.csproj" /> <!-- Redis opsiyonel -->
   <ProjectReference Include="..\src\Oks\Oks.Web.Abstractions\Oks.Web.Abstractions.csproj" />
   <ProjectReference Include="..\src\Oks\Oks.Web\Oks.Web.csproj" />
 </ItemGroup>
 ```
 
+> `Oks.Caching.Redis` isminde ayrı bir proje/paket yoktur. Dağıtık cache için uygulama tarafında standart `IDistributedCache` sağlayıcısını (ör. `AddStackExchangeRedisCache`) kaydetmen yeterlidir.
+
+## 2) Namespace'ler
+```csharp
+using Oks.Caching.Extensions;
+using Oks.Persistence.EfCore;
+```
+
+`AddOksCaching(...)`, `UseDistributedCache()` ve `AddReadRepositoryCaching()` extension method'ları `Oks.Caching.Extensions` namespace'i altındadır.
+
 (...content unchanged until Redis provider section...)
 
-## 6) Redis provider'ını etkinleştirme
+## 6) Redis / IDistributedCache provider'ını etkinleştirme
 ```csharp
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -35,6 +44,15 @@ builder.Services.AddOksCaching(caching =>
 });
 ```
 
-> NOTE: Mevcut implementasyonda tag-index (ICacheTagIndex) varsayılan olarak InMemoryCacheTagIndex'dir. Dağıtık/çoklu node (Redis) senaryolarında tag-index'in merkezi (örn. Redis setleri) bir implementasyonu gereklidir. InMemoryCacheTagIndex yalnızca tek-node veya test senaryoları içindir.
+Alternatif olarak varsayılan memory cache davranışı için sadece aşağıdaki kayıt yeterlidir:
+
+```csharp
+builder.Services.AddOksCaching(caching =>
+{
+    caching.AddReadRepositoryCaching();
+});
+```
+
+> NOTE: Mevcut implementasyonda tag-index (`ICacheTagIndex`) varsayılan olarak `InMemoryCacheTagIndex`'dir. Dağıtık/çoklu node (Redis) senaryolarında tag-index'in merkezi (örn. Redis setleri) bir implementasyonu gereklidir. `InMemoryCacheTagIndex` yalnızca tek-node veya test senaryoları içindir.
 
 (...rest unchanged...)
