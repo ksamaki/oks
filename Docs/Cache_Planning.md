@@ -107,13 +107,12 @@ public sealed class CacheEvictAttribute : Attribute
 ```
 DI kaydı:
 ```csharp
-services.AddOksCaching(builder =>
+services.AddOksCaching(caching =>
 {
-    builder.UseDistributedCache(); // Redis adaptörü seçilir
-    builder.WithDefaultOptions(o => { o.Duration = TimeSpan.FromMinutes(5); o.SoftTtl = TimeSpan.FromSeconds(30); });
-    builder.AddReadRepositoryCaching();
-    builder.AddWriteRepositoryEviction();
-    builder.AddMvcFilters();
+    caching.UseDistributedCache(); // IDistributedCache sağlayıcısı seçilir
+    caching.AddReadRepositoryCaching();
+    caching.DefaultEntryOptions.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+    caching.DefaultEntryOptions.SoftExpiration = TimeSpan.FromSeconds(30);
 });
 ```
 

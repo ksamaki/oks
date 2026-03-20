@@ -1,6 +1,6 @@
 # Cache - Description
 
-[Ana sayfa](../README.md)
+[Cache - Usage](Cache_Usage.md) | [Ana sayfa](../README.md)
 
 OKS cache paketi; okuma trafiğini otomatik cache'leyip yazma tarafında tag/pattern tabanlı yırtmayı yöneten, attribute tabanlı ve genişletilebilir bir mekanizma sunar. Paket referans edilmediği sürece devre dışı kalır; eklendiğinde MVC filtreleri, repository dekoratörleri ve MediatR pipeline'ı ile minimum kodla devreye girer.
 
@@ -29,10 +29,22 @@ Oks.Caching (çekirdek)
   - ICacheKeyBuilder
   - Decorators: ReadRepositoryCacheDecorator, UnitOfWorkCacheEvictDecorator
   - Filters: CacheableActionFilter, CacheEvictActionFilter (MVC & Minimal API)
-
-Oks.Caching.Redis (opsiyonel)
-  - StackExchange.Redis tabanlı IDistributedCache adaptörü
 ```
+
+> Dağıtık cache desteği için ayrı bir `Oks.Caching.Redis` paketi gerekmez. Uygulama tarafında standart `IDistributedCache` implementasyonunu (`AddStackExchangeRedisCache`, SQL distributed cache vb.) kaydetmek ve ardından `AddOksCaching(caching => caching.UseDistributedCache())` çağırmak yeterlidir.
+
+## Kısa kullanım özeti
+```csharp
+using Oks.Caching.Extensions;
+
+builder.Services.AddOksCaching(caching =>
+{
+    caching.UseDistributedCache();
+    caching.AddReadRepositoryCaching();
+});
+```
+
+Memory cache ile devam etmek istersen `UseDistributedCache()` çağrısını yapmadan sadece `AddOksCaching(...)` kullanabilirsin.
 
 ## Mimari akış
 1. `[Cacheable]` attribute veya Read repository dekoratörü, `ICacheService.GetOrAddAsync` ile cache kontrolü yapar.
