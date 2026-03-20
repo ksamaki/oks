@@ -1,21 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
     <PackageId>Oks.Logging.Abstractions</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Kursat Samaki</Authors>
-    <Company>OKS</Company>
-    <Product>Oks Framework</Product>
-    <RepositoryUrl>https://github.com/ksamaki/oks</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/ksamaki/oks</PackageProjectUrl>
-    <Description>Abstractions and contracts for extensible logging in the Oks framework.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Logging abstractions and contracts for Oks.</Description>
   </PropertyGroup>
+
 
   <ItemGroup>
     <None Include="..\..\..\README.md" Pack="true" PackagePath="" />

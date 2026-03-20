@@ -4,11 +4,16 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Oks.Caching.Abstractions</PackageId>
+    <Description>Caching contracts, attributes, and primitives for Oks.</Description>
   </PropertyGroup>
+
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.1" />
   </ItemGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\Oks.Domain\Oks.Domain.csproj" />

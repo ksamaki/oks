@@ -1,21 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
     <PackageId>Oks.Logging</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Kursat Samaki</Authors>
-    <Company>OKS</Company>
-    <Product>Oks Framework</Product>
-    <RepositoryUrl>https://github.com/ksamaki/oks</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/ksamaki/oks</PackageProjectUrl>
-    <Description>Logging infrastructure and EF Core-backed logging integrations for Oks applications.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Logging infrastructure and EF Core-backed log writer implementations for Oks.</Description>
   </PropertyGroup>
+
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
@@ -23,10 +16,12 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\Oks.Logging.Abstractions\Oks.Logging.Abstractions.csproj" />
     <ProjectReference Include="..\Oks.Logging.EfCore\Oks.Logging.EfCore.csproj" />
   </ItemGroup>
+
 
   <ItemGroup>
     <None Include="..\..\..\README.md" Pack="true" PackagePath="" />

@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
+    <Version>1.0.0</Version>
+    <Authors>Kursat Samaki</Authors>
+    <Company>OKS</Company>
+    <Product>Oks Framework</Product>
+    <RepositoryUrl>https://github.com/ksamaki/oks</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageProjectUrl>https://github.com/ksamaki/oks</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>oks;dotnet;framework;clean-architecture;aspnetcore</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true' and Exists('$(MSBuildThisFileDirectory)README.md')">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+</Project>
