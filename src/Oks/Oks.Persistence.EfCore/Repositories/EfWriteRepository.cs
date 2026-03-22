@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Oks.Domain.Base;
@@ -47,6 +47,12 @@ public class EfWriteRepository<TEntity, TKey>
         }).GetAwaiter().GetResult();
     }
 
+    public virtual Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        Update(entity);
+        return Task.CompletedTask;
+    }
+
     public void Remove(TEntity entity)
     {
         MeasureWriteAsync("Remove", () =>
@@ -55,6 +61,12 @@ public class EfWriteRepository<TEntity, TKey>
             _writeTracker.MarkWrite();
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
+    }
+
+    public virtual Task RemoveAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        Remove(entity);
+        return Task.CompletedTask;
     }
 
     private async Task MeasureWriteAsync(string operation, Func<Task> action)

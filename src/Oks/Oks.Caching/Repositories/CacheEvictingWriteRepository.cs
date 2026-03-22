@@ -83,10 +83,22 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         EvictAsync(entity).GetAwaiter().GetResult();
     }
 
+    public async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        await _inner.UpdateAsync(entity, cancellationToken);
+        await EvictAsync(entity, cancellationToken);
+    }
+
     public void Remove(TEntity entity)
     {
         _inner.Remove(entity);
         EvictAsync(entity).GetAwaiter().GetResult();
+    }
+
+    public async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        await _inner.RemoveAsync(entity, cancellationToken);
+        await EvictAsync(entity, cancellationToken);
     }
 
     private async Task EvictAsync(TEntity entity, CancellationToken cancellationToken = default)

@@ -28,7 +28,7 @@ public class AuditAndSoftDeleteTests
             new EfWriteRepository<TestUser, int>(context, writeTracker);
         IUnitOfWork uow = new EfUnitOfWork(context);
 
-        var user = new TestUser { Name = "Kürþat" };
+        var user = new TestUser { Name = "KÃ¼rÅŸat" };
 
         await writeRepo.AddAsync(user);
         await uow.SaveChangesAsync();
@@ -58,9 +58,7 @@ public class AuditAndSoftDeleteTests
         await writeRepo.AddAsync(user);
         await uow.SaveChangesAsync();
 
-        // soft delete
-        context.Remove(user);
-        writeTracker.MarkWrite(); // normalde EfWriteRepository yapardý
+        await writeRepo.RemoveAsync(user);
         await uow.SaveChangesAsync();
 
         user.IsDeleted.Should().BeTrue();
@@ -69,5 +67,29 @@ public class AuditAndSoftDeleteTests
 
         var list = await readRepo.GetListAsync();
         list.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task When_Entity_Updated_Async_Audit_Fields_Should_Be_Filled()
+    {
+        using var context = CreateInMemoryContext();
+        var writeTracker = new WriteTracker();
+
+        IWriteRepository<TestUser, int> writeRepo =
+            new EfWriteRepository<TestUser, int>(context, writeTracker);
+        IUnitOfWork uow = new EfUnitOfWork(context);
+
+        var user = new TestUser { Name = "Initial" };
+
+        await writeRepo.AddAsync(user);
+        await uow.SaveChangesAsync();
+
+        user.Name = "Updated";
+        await writeRepo.UpdateAsync(user);
+        await uow.SaveChangesAsync();
+
+        user.UpdatedAt.Should().NotBeNull();
+        user.UpdatedBy.Should().Be("test-user");
+        user.IsDeleted.Should().BeFalse();
     }
 }

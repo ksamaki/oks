@@ -20,7 +20,17 @@ using Oks.Location.Redis.Models;
 public sealed class UserLocationWriteRepository : ILocationWriteRepository<UserLocation, Guid>
 {
     public Task AddAsync(UserLocation entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task UpdateAsync(UserLocation entity, CancellationToken cancellationToken = default)
+    {
+        Update(entity);
+        return Task.CompletedTask;
+    }
     public void Update(UserLocation entity) { }
+    public Task RemoveAsync(UserLocation entity, CancellationToken cancellationToken = default)
+    {
+        Remove(entity);
+        return Task.CompletedTask;
+    }
     public void Remove(UserLocation entity) { }
 
     // IReadRepository üyeleri burada mevcut repository standardına göre implement edilir.

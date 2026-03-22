@@ -84,7 +84,7 @@ public class CachingTests
 
         user.Name = "Updated";
         await context.SaveChangesAsync();
-        writeRepo.Update(user);
+        await writeRepo.UpdateAsync(user);
         await uow.SaveChangesAsync();
 
         var refreshed = await readRepo.GetByIdAsync(1);
@@ -119,7 +119,7 @@ public class CachingTests
         tags.KeysFor(nameof(TestUser)).Should().NotBeEmpty();
 
         cached!.Name = "Changed";
-        writeRepo.Update(cached);
+        await writeRepo.UpdateAsync(cached);
         await uow.SaveChangesAsync();
 
         tags.KeysFor("feature").Should().BeEmpty();
@@ -154,7 +154,7 @@ public class CachingTests
         tags.KeysFor("flush").Should().NotBeEmpty();
 
         cached!.Name = "Changed";
-        writeRepo.Update(cached);
+        await writeRepo.UpdateAsync(cached);
         await uow.SaveChangesAsync();
 
         tags.KeysFor("flush").Should().BeEmpty();

@@ -15,6 +15,7 @@ Yazma operasyonları için OKS, `IWriteRepository<TEntity, TKey>` ve `EfUnitOfWo
 - `[OksTransactional]` ile her durumda transaction/commit zorlanabilir.
 - `[OksSkipTransaction]` ile filtre tamamen devre dışı bırakılabilir (örneğin toplu import senaryoları).
 - Audit alanları (`CreatedAt`, `CreatedBy`, `ModifiedAt`, `ModifiedBy`) ve soft delete otomatik doldurulur.
+- Asenkron API tutarlılığı için `AddAsync` yanında `UpdateAsync` ve `RemoveAsync` de sağlanır; EF Core tarafında bu metotlar state değişimini senkron `Update` / `Remove` üzerinden yapıp `Task.CompletedTask` döndürür.
 
 ---
 ## Usage

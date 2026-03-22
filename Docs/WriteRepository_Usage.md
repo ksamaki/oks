@@ -68,8 +68,7 @@ app.Run();
 ## 4) Yazma işlemi yapan controller örneği
 ```csharp
 using Microsoft.AspNetCore.Mvc;
-using Oks.Persistence.Abstractions.Read;
-using Oks.Persistence.Abstractions.Write;
+using Oks.Persistence.Abstractions.Repositories;
 using Oks.Web.Attributes;
 
 [ApiController]
@@ -93,20 +92,33 @@ public class ProductsController : ControllerBase
         return Ok(dto); // SaveChanges action sonunda otomatik tetiklenir
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, Product dto)
+    {
+        var entity = await _read.GetByIdAsync(id);
+        if (entity is null) return NotFound();
+
+        entity.Name = dto.Name;
+        entity.Price = dto.Price;
+
+        await _write.UpdateAsync(entity);
+        return Ok(entity); // SaveChanges action sonunda otomatik tetiklenir
+    }
+
     [HttpDelete("{id}")]
     [OksSkipTransaction] // Gerekirse filtreyi tamamen kapatabilirsin
     public async Task<IActionResult> Delete(Guid id)
     {
-        var entity = await _read.GetAsync(id);
+        var entity = await _read.GetByIdAsync(id);
         if (entity is null) return NotFound();
 
-        await _write.DeleteAsync(entity);
-        await _write.SaveChangesAsync(); // Filtre kapalıyken manuel commit
+        await _write.RemoveAsync(entity);
+        // Filtre kapalıyken manuel commit için IUnitOfWork enjekte edip SaveChangesAsync çağır.
         return NoContent();
     }
 }
 ```
 
-> İpucu: `[OksTransactional]` attribute'u sınıf seviyesine koyarak tüm action'larda commit'i zorunlu kılabilir, `[OksSkipTransaction]` ile belirli controller'larda unit of work filtresini tamamen devre dışı bırakabilirsin.
+> İpucu: `[OksTransactional]` attribute'u sınıf seviyesine koyarak tüm action'larda commit'i zorunlu kılabilir, `[OksSkipTransaction]` ile belirli controller'larda unit of work filtresini tamamen devre dışı bırakabilirsin. `UpdateAsync` ve `RemoveAsync`, EF Core tarafında izleme durumunu değiştiren senkron işlemleri sarmalayarak async API bütünlüğü sağlar.
 
 Bu yapı yazma işlemlerini transaction güvenliği, audit ve soft delete ile birlikte getirir.
