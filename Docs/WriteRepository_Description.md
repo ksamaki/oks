@@ -2,7 +2,7 @@
 
 [Ana sayfa](../README.md)
 
-Yazma operasyonları için OKS, `IWriteRepository<TEntity, TKey>` ve `EfUnitOfWork` kombinasyonunu sunar. HTTP pipeline'a eklenen `OksUnitOfWorkFilter`, action sonunda otomatik `SaveChangesAsync` çağırır; gerekirse `[OksTransactional]` veya `[OksSkipTransaction]` attribute'larıyla davranış kontrol edilir.
+Yazma operasyonları için OKS, `IWriteRepository<TEntity, TKey>` ve `EfUnitOfWork` kombinasyonunu sunar. HTTP pipeline'a eklenen `OksUnitOfWorkFilter`, action sonunda otomatik `SaveChangesAsync` çağırır; `[OksSkipTransaction]` attribute'u ile bu davranış action/controller bazında kapatılabilir.
 
 ## Başlıca bileşenler
 - **Oks.Persistence.Abstractions**: `IWriteRepository`, unit of work ve transaction kontratları.
@@ -12,7 +12,7 @@ Yazma operasyonları için OKS, `IWriteRepository<TEntity, TKey>` ve `EfUnitOfWo
 
 ## Neler sağlar?
 - Action sonunda otomatik commit, yazma olmadığında boş commit yapılmaz.
-- `[OksTransactional]` ile her durumda transaction/commit zorlanabilir.
+- `OksUnitOfWorkFilter`, başarılı action'larda otomatik commit dener ve `IUnitOfWork` tarafında değişiklik yoksa no-op olur.
 - `[OksSkipTransaction]` ile filtre tamamen devre dışı bırakılabilir (örneğin toplu import senaryoları).
 - Audit alanları (`CreatedAt`, `CreatedBy`, `ModifiedAt`, `ModifiedBy`) ve soft delete otomatik doldurulur.
 

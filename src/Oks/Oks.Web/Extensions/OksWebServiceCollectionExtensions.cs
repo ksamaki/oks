@@ -12,7 +12,8 @@ public static class OksWebServiceCollectionExtensions
 {
     /// <summary>
     /// OKS UnitOfWork filtresini MVC pipeline'ına ekler.
-    /// WriteRepository ile yazma yapılmışsa, request sonunda otomatik SaveChanges çağrılır.
+    /// Başarılı action'larda request sonunda otomatik SaveChanges çağrılır.
+    /// Değişiklik yoksa IUnitOfWork implementasyonu no-op dönebilir.
     /// </summary>
     public static IMvcBuilder AddOksUnitOfWork(this IMvcBuilder mvcBuilder)
     {
