@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Oks.Persistence.Abstractions.Repositories;
-using Oks.Persistence.EfCore;
 using Oks.Web.Abstractions.Attributes;
 
 namespace Oks.Web.Filters;
@@ -9,12 +8,10 @@ namespace Oks.Web.Filters;
 public class OksUnitOfWorkFilter : IAsyncActionFilter
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly WriteTracker _writeTracker;
 
-    public OksUnitOfWorkFilter(IUnitOfWork unitOfWork, WriteTracker writeTracker)
+    public OksUnitOfWorkFilter(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _writeTracker = writeTracker;
     }
 
     public async Task OnActionExecutionAsync(
@@ -31,11 +28,9 @@ public class OksUnitOfWorkFilter : IAsyncActionFilter
         if (ShouldSkipTransaction(executedContext))
             return;
 
-        // 3) Yazma yoksa ve [OksTransactional] ile zorlanmamışsa → SaveChanges çağırmaya gerek yok
-        if (!_writeTracker.HasWrite && !HasOksTransactional(executedContext))
-            return;
-
-        // 4) Buraya geldiysek → ya yazma oldu, ya da OksTransactional ile zorunlu kılındı
+        // 3) Buraya geldiysek SaveChanges çağrılır.
+        // EfUnitOfWork içerisinde ChangeTracker.HasChanges() kontrolü var;
+        // değişiklik yoksa metod hızlıca 0 döner.
         await _unitOfWork.SaveChangesAsync(context.HttpContext.RequestAborted);
     }
 
@@ -55,19 +50,4 @@ public class OksUnitOfWorkFilter : IAsyncActionFilter
         return skipOnMethod || skipOnController;
     }
 
-    private static bool HasOksTransactional(ActionExecutedContext context)
-    {
-        if (context.ActionDescriptor is not ControllerActionDescriptor cad)
-            return false;
-
-        bool onMethod = cad.MethodInfo
-            .GetCustomAttributes(typeof(OksTransactionalAttribute), inherit: true)
-            .Any();
-
-        bool onController = cad.ControllerTypeInfo
-            .GetCustomAttributes(typeof(OksTransactionalAttribute), inherit: true)
-            .Any();
-
-        return onMethod || onController;
-    }
 }
