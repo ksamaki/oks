@@ -86,7 +86,6 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    [OksTransactional] // Yazma olmasa bile transaction/commit zorlanır
     public async Task<IActionResult> Create(Product dto)
     {
         await _write.AddAsync(dto);
@@ -107,6 +106,6 @@ public class ProductsController : ControllerBase
 }
 ```
 
-> İpucu: `[OksTransactional]` attribute'u sınıf seviyesine koyarak tüm action'larda commit'i zorunlu kılabilir, `[OksSkipTransaction]` ile belirli controller'larda unit of work filtresini tamamen devre dışı bırakabilirsin.
+> İpucu: `AddOksUnitOfWork()` aktifken başarılı action'larda commit otomatik denenir. Filtreyi belirli action/controller için kapatmak istersen `[OksSkipTransaction]` kullanabilirsin.
 
 Bu yapı yazma işlemlerini transaction güvenliği, audit ve soft delete ile birlikte getirir.
