@@ -15,9 +15,6 @@ public static class ServiceCollectionExtensions
         // Biz burada DbContext base türü olarak TDbContext'i kullan diyoruz.
         services.AddScoped<DbContext, TDbContext>();
 
-        // Her request için bir WriteTracker
-        services.AddScoped<WriteTracker>();
-
         // Unit of Work
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 

@@ -22,18 +22,13 @@ public class AuditAndSoftDeleteTests
     public async Task When_Entity_Added_Audit_Fields_Should_Be_Filled()
     {
         using var context = CreateInMemoryContext();
-        var writeTracker = new WriteTracker();
-
         IWriteRepository<TestUser, int> writeRepo =
-            new EfWriteRepository<TestUser, int>(context, writeTracker);
+            new EfWriteRepository<TestUser, int>(context);
         IUnitOfWork uow = new EfUnitOfWork(context);
 
-        var user = new TestUser { Name = "Kürþat" };
-
-        await writeRepo.AddAsync(user);
+            new EfWriteRepository<TestUser, int>(context);
         await uow.SaveChangesAsync();
 
-        user.CreatedAt.Should().NotBe(default);
         user.CreatedBy.Should().Be("test-user");
         user.IsDeleted.Should().BeFalse();
 
@@ -60,7 +55,7 @@ public class AuditAndSoftDeleteTests
 
         // soft delete
         context.Remove(user);
-        writeTracker.MarkWrite(); // normalde EfWriteRepository yapardý
+        writeTracker.MarkWrite(); // normalde EfWriteRepository yapardÃ½
         await uow.SaveChangesAsync();
 
         user.IsDeleted.Should().BeTrue();

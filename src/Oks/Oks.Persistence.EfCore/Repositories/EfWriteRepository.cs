@@ -16,16 +16,12 @@ public class EfWriteRepository<TEntity, TKey>
     : EfReadRepository<TEntity, TKey>, IWriteRepository<TEntity, TKey>
     where TEntity : Entity<TKey>
 {
-    private readonly WriteTracker _writeTracker;
-
     public EfWriteRepository(
         DbContext dbContext,
-        WriteTracker writeTracker,
         IOksLogWriter? logWriter = null,
         IOptions<OksRepositoryLoggingOptions>? repoLogOptions = null)
         : base(dbContext, logWriter, repoLogOptions)
     {
-        _writeTracker = writeTracker;
     }
 
     public Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -33,7 +29,6 @@ public class EfWriteRepository<TEntity, TKey>
         return MeasureWriteAsync("Add", async () =>
         {
             await DbSet.AddAsync(entity, cancellationToken);
-            _writeTracker.MarkWrite();
         });
     }
 
@@ -42,7 +37,6 @@ public class EfWriteRepository<TEntity, TKey>
         MeasureWriteAsync("Update", () =>
         {
             DbSet.Update(entity);
-            _writeTracker.MarkWrite();
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
     }
@@ -52,7 +46,6 @@ public class EfWriteRepository<TEntity, TKey>
         MeasureWriteAsync("Remove", () =>
         {
             DbSet.Remove(entity);
-            _writeTracker.MarkWrite();
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
     }
