@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Oks.Logging.Abstractions.Enums;
 using Oks.Logging.Abstractions.Extensions;
