@@ -1,5 +1,8 @@
-﻿using FluentValidation;
+using FluentValidation;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Oks.Web.Validation.Behaviors;
 using Oks.Web.Validation.Filters;
 using System.Reflection;
 
@@ -15,7 +18,6 @@ public static class OksWebValidationServiceCollectionExtensions
         this IMvcBuilder mvcBuilder,
         params Assembly[] validatorAssemblies)
     {
-        // Eğer assembly verilmezse, entry assembly'i kullanmayı deneyelim
         if (validatorAssemblies is null || validatorAssemblies.Length == 0)
         {
             var entry = Assembly.GetEntryAssembly();
@@ -25,21 +27,25 @@ public static class OksWebValidationServiceCollectionExtensions
             }
         }
 
-        // FluentValidation validator'larını DI'ya ekle
         if (validatorAssemblies is not null && validatorAssemblies.Length > 0)
         {
             mvcBuilder.Services.AddValidatorsFromAssemblies(validatorAssemblies);
         }
 
-        // Validation filtresini kaydet
         mvcBuilder.Services.AddScoped<OksValidationFilter>();
+        mvcBuilder.Services.AddScoped<OksMinimalApiValidationFilter>();
 
         mvcBuilder.AddMvcOptions(options =>
         {
-            // Her requestte action'dan önce bu filter çalışacak
             options.Filters.AddService<OksValidationFilter>();
         });
 
         return mvcBuilder;
+    }
+
+    public static IServiceCollection AddOksMediatRValidationBehavior(this IServiceCollection services)
+    {
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(OksValidationBehavior<,>));
+        return services;
     }
 }

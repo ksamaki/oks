@@ -89,21 +89,4 @@ public class OksValidationFilter : IAsyncActionFilter
         return skipOnMethod || skipOnController;
     }
 
-    private static bool HasOksValidation(ActionExecutingContext context)
-    {
-        if (context.ActionDescriptor is not ControllerActionDescriptor cad)
-            return false;
-
-        bool onMethod = cad.MethodInfo
-            .GetCustomAttributes(typeof(OksValidationAttribute), inherit: true)
-            .Any();
-
-        bool onController = cad.ControllerTypeInfo
-            .GetCustomAttributes(typeof(OksValidationAttribute), inherit: true)
-            .Any();
-
-        return onMethod || onController;
-    }
-
-
 }

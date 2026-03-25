@@ -2,9 +2,7 @@
 
 [Validation - Description](Validation_Description.md) | [Ana sayfa](../README.md)
 
-Validator'ları otomatik çalıştırmak için aşağıdaki adımları kopyalayabilirsin.
-
-## 1) Proje referansları (`.csproj`)
+## 1) Proje referansları
 ```xml
 <ItemGroup>
   <ProjectReference Include="..\\src\\Oks\\Oks.Shared\\Oks.Shared.csproj" />
@@ -14,7 +12,7 @@ Validator'ları otomatik çalıştırmak için aşağıdaki adımları kopyalaya
 </ItemGroup>
 ```
 
-## 2) DI kaydı
+## 2) DI kaydı (MVC + Minimal API + MediatR)
 ```csharp
 using Oks.Web.Extensions;
 using Oks.Web.Validation;
@@ -22,24 +20,26 @@ using Oks.Web.Validation;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers()
-    .AddOksResultWrapping() // Opsiyonel ama hata formatı için önerilir
+    .AddOksResultWrapping()
     .AddOksFluentValidation(typeof(Program).Assembly);
+
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+builder.Services.AddOksMediatRValidationBehavior();
 
 var app = builder.Build();
 
-app.UseAuthorization();
-app.MapControllers();
+var api = app.MapGroup("/api")
+    .AddOksValidation()
+    .AddOksResultWrapping();
 
+app.MapControllers();
 app.Run();
 ```
 
-## 3) Validator ve controller örneği
+## 3) FluentValidation validator örneği
 ```csharp
-using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
-using Oks.Web.Validation.Attributes;
-
-public class CreateProductValidator : AbstractValidator<Product>
+public sealed class CreateProductValidator : AbstractValidator<CreateProductRequest>
 {
     public CreateProductValidator()
     {
@@ -47,24 +47,25 @@ public class CreateProductValidator : AbstractValidator<Product>
         RuleFor(x => x.Price).GreaterThan(0);
     }
 }
-
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController : ControllerBase
-{
-    [HttpPost]
-    public IActionResult Create(Product dto)
-    {
-        return Ok(dto); // Geçersiz ise OksValidationFilter otomatik 400 döner
-    }
-
-    [HttpPost("skip")]
-    [OksSkipValidation]
-    public IActionResult CreateWithoutValidation(Product dto)
-    {
-        return Ok(dto); // Bu action'da validation çalışmaz
-    }
-}
 ```
 
-Bu entegrasyon ile validator'lar otomatik bulunur, kopyala-yapıştır setup sonrası ek yapılandırma gerekmez.
+## 4) MVC skip örneği
+```csharp
+[HttpPost("skip")]
+[OksSkipValidation]
+public IActionResult CreateWithoutValidation(CreateProductRequest dto) => Ok(dto);
+```
+
+## 5) Minimal API skip örneği
+```csharp
+api.MapPost("/products/skip", (CreateProductRequest dto) => dto)
+   .WithMetadata(new OksSkipValidationAttribute());
+```
+
+## 6) MediatR skip örneği
+```csharp
+[OksSkipValidation]
+public sealed record ImportCatalogCommand(string Source) : IRequest<Result>;
+```
+
+Not: MediatR tarafında ilgili request için `IValidator<TRequest>` kayıtlı değilse behavior otomatik olarak `next()` çağırır.
