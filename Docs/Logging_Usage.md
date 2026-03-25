@@ -2,13 +2,11 @@
 
 [Logging - Description](Logging_Description.md) | [Ana sayfa](../README.md)
 
-Projene OKS logging'i eklemek için aşağıdaki adımları kopyalayabilirsin.
+Aşağıdaki örnek, tüm log kategorilerini MVC + Minimal API üzerinde birlikte gösterir.
 
-## 1) Proje referansları (`.csproj`)
+## 1) Proje referansları
 ```xml
 <ItemGroup>
-  <ProjectReference Include="..\\src\\Oks\\Oks.Domain\\Oks.Domain.csproj" />
-  <ProjectReference Include="..\\src\\Oks\\Oks.Shared\\Oks.Shared.csproj" />
   <ProjectReference Include="..\\src\\Oks\\Oks.Persistence.EfCore\\Oks.Persistence.EfCore.csproj" />
   <ProjectReference Include="..\\src\\Oks\\Oks.Logging.Abstractions\\Oks.Logging.Abstractions.csproj" />
   <ProjectReference Include="..\\src\\Oks\\Oks.Logging\\Oks.Logging.csproj" />
@@ -18,11 +16,11 @@ Projene OKS logging'i eklemek için aşağıdaki adımları kopyalayabilirsin.
 </ItemGroup>
 ```
 
-## 2) DbContext'e log tablolarını ekle
+## 2) DbContext
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using Oks.Persistence.EfCore;
 using Oks.Logging.EfCore;
+using Oks.Persistence.EfCore;
 
 public class AppDbContext : OksDbContextBase
 {
@@ -31,24 +29,19 @@ public class AppDbContext : OksDbContextBase
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.AddOksLogging(); // OksLog* tablolarını EF modeline ekle
+        modelBuilder.AddOksLogging();
     }
 
-    protected override string? GetCurrentUserIdentifier()
-    {
-        return "demo-user"; // Audit ve loglar için kullanıcı kimliği
-    }
+    protected override string? GetCurrentUserIdentifier() => "demo-user";
 }
 ```
 
-## 3) DI ve middleware kaydı
+## 3) DI + Middleware + MVC/Minimal API pipeline
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Oks.Logging.Extensions;
 using Oks.Persistence.EfCore.Extensions;
 using Oks.Web.Extensions;
-using Oks.Web.Performance;
-using Oks.Web.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,105 +49,132 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddOksEfCore<AppDbContext>();
+
+// Writer + repository/audit logging
 builder.Services.AddOksLogging<AppDbContext>();
 builder.Services.AddOksRepositoryLogging(opt => opt.Enabled = true);
 builder.Services.AddOksAuditLogging(opt => opt.Enabled = true);
 
+// Request + Exception logging middleware
+builder.Services.AddOksRequestLogging();
+builder.Services.AddOksExceptionHandling();
+
+// Performance + RateLimit options (MVC ve Minimal API için)
+builder.Services.AddOksPerformance(opt =>
+{
+    opt.Enabled = true;
+    opt.DefaultThresholdMs = 500;
+    opt.ThrowOnSlowRequest = false;
+});
+
+builder.Services.AddOksRateLimiting(opt =>
+{
+    opt.Enabled = true;
+    opt.DefaultRequestsPerMinute = 100;
+});
+
 builder.Services.AddControllers()
     .AddOksResultWrapping()
-    .AddOksRateLimiting(opt => { opt.MaxRequests = 100; opt.WindowSeconds = 60; })
-    .AddOksPerformance(opt => { opt.ThresholdMilliseconds = 500; });
-
-builder.Services.AddOksExceptionHandling();
-builder.Services.AddOksRequestLogging();
+    .AddOksPerformance()
+    .AddOksRateLimiting();
 
 var app = builder.Build();
 
 app.UseOksExceptionHandling();
 app.UseOksRequestLogging();
-app.UseAuthorization();
+
 app.MapControllers();
+
+var api = app.MapGroup("/api")
+    .AddOksResultWrapping()
+    .AddOksPerformance()
+    .AddOksRateLimiting();
 
 app.Run();
 ```
 
-## 4) Attribute ile aksiyon bazlı hız limiti ve performans eşiği
-Küresel ayarların yanında her controller/action için farklı limitler ya da özel eşikler verebilirsin.
-
+## 4) Minimal API örnekleri (Performance + RateLimit metadata)
 ```csharp
-using Microsoft.AspNetCore.Mvc;
 using Oks.Web.Abstractions.Attributes;
 
+api.MapGet("/slow", async () =>
+{
+    await Task.Delay(800);
+    return "slow endpoint";
+})
+.WithMetadata(new OksPerformanceAttribute(200));
+
+api.MapGet("/limited", () => "limited")
+   .WithMetadata(new OksRateLimitAttribute(10));
+
+api.MapGet("/limited-skip", () => "skip")
+   .WithMetadata(new OksRateLimitAttribute(1))
+   .WithMetadata(new OksSkipRateLimitAttribute());
+```
+
+## 5) MVC örnekleri (Performance + RateLimit)
+```csharp
 [ApiController]
 [Route("api/[controller]")]
 public class DemoController : ControllerBase
 {
     [HttpGet("fast")]
-    [OksPerformance(ThresholdMilliseconds = 200)] // Bu action için 200 ms eşik
-    public IActionResult FastEndpoint() => Ok("measured against 200ms");
+    [OksPerformance(200)]
+    public IActionResult Fast() => Ok("ok");
 
     [HttpGet("limited")]
-    [OksRateLimit(MaxRequests = 10, WindowSeconds = 60)] // Dakikada 10 istek limiti
-    public IActionResult LimitedEndpoint() => Ok("rate-limited");
+    [OksRateLimit(10)]
+    public IActionResult Limited() => Ok("rate-limited");
+
+    [HttpGet("skip")]
+    [OksSkipPerformance]
+    [OksSkipRateLimit]
+    public IActionResult Skip() => Ok("skip");
 }
 ```
 
-## 5) Custom log yazımı
+## 6) Repository + Audit log örneği
+```csharp
+public sealed class ProductService
+{
+    private readonly IWriteRepository<Product, Guid> _write;
+
+    public ProductService(IWriteRepository<Product, Guid> write)
+    {
+        _write = write;
+    }
+
+    public async Task CreateAsync(Product product)
+    {
+        await _write.AddAsync(product);
+        // SaveChanges AddOksUnitOfWork ile otomatik veya manuel çağrılabilir.
+        // Repository/Audit logları burada devreye girer.
+    }
+}
+```
+
+## 7) Custom log örneği
 ```csharp
 using Oks.Logging.Abstractions.Enums;
+using Oks.Logging.Abstractions.Extensions;
 using Oks.Logging.Abstractions.Interfaces;
 using Oks.Logging.Abstractions.Models;
 
-public class DemoService
+public sealed class PaymentService
 {
     private readonly IOksLogWriter _logWriter;
-    public DemoService(IOksLogWriter logWriter) => _logWriter = logWriter;
 
-    public async Task DoWorkAsync()
+    public PaymentService(IOksLogWriter logWriter) => _logWriter = logWriter;
+
+    public async Task MarkAsync(Guid orderId)
     {
         await _logWriter.SafeWriteAsync(new OksLogEntry
         {
             Category = OksLogCategory.Custom,
             Level = OksLogLevel.Info,
-            Message = "Custom log ornegi",
-            CreatedAtUtc = DateTime.UtcNow,
-            ExtraDataJson = "{\"key\":\"value\"}"
+            Message = $"Payment marked: {orderId}",
+            CreatedAtUtc = DateTime.UtcNow
         });
     }
 }
 ```
-
-## 6) Migration komutları
-```powershell
-Add-Migration InitOksLogs
-Update-Database
-```
-
-`Update-Database` veya uygulamanın açılışında `Database.Migrate()` çağrıldığında EF migration'larıyla birlikte log tabloları otomatik oluşur.
-
-## 7) Attribute ile sınıf/metot bazında skip
-Performans veya rate limit loglarını ihtiyaç halinde sınıf ya da metot bazında bypass edebilirsin. Skip edildiğinde işlem devam eder, log kaydında `SkipEnforced = true` olarak işaretlenir.
-
-```csharp
-using Microsoft.AspNetCore.Mvc;
-using Oks.Web.Abstractions.Attributes;
-
-[ApiController]
-[Route("api/[controller]")]
-[OksSkipPerformance] // Tüm action'larda performance threshold kontrolünü pas geçer
-public class HealthController : ControllerBase
-{
-    [HttpGet]
-    [OksSkipRateLimit] // Sadece bu action rate limiting'i ve buna bağlı logu skip eder
-    public IActionResult Ping() => Ok("pong");
-
-    [HttpGet("heavy")]
-    public IActionResult Heavy()
-    {
-        // Bu action sınıf seviyesindeki OksSkipPerformance nedeniyle threshold'a takılmaz
-        return Ok("still measured but skip enforced");
-    }
-}
-```
-
-Bu adımların ardından tüm log kategorileri otomatik olarak çalışır; ihtiyacına göre servis kayıtlarını açıp kapatabilirsin.

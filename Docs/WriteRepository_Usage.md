@@ -18,27 +18,6 @@ Aşağıdaki adımları kopyalayarak yazma repository katmanını transaction fi
 
 ## 2) DbContext ve audit
 Audit için `OksDbContextBase` kullanılır; kullanıcı bilgisini audit kayıtlarında kullanmak için `GetCurrentUserIdentifier`'ı doldur.
-```csharp
-using Microsoft.EntityFrameworkCore;
-using Oks.Persistence.EfCore;
-using Oks.Logging.EfCore; // Audit log tablolarını aktifleştirmek istersen
-
-public class AppDbContext : OksDbContextBase
-{
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.AddOksLogging(); // OksLog* tablolarını eklemek opsiyoneldir
-    }
-
-    protected override string? GetCurrentUserIdentifier()
-    {
-        return "demo-user"; // HttpContext'ten veya servislerinden alabilirsin
-    }
-}
-```
 
 ## 3) DI ve pipeline kurulumu
 ```csharp
@@ -54,59 +33,35 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 builder.Services.AddOksEfCore<AppDbContext>();
 
 builder.Services.AddControllers()
-    .AddOksUnitOfWork()    // MVC + Minimal API sonunda otomatik SaveChanges denemesi
-    .AddOksResultWrapping();
+    .AddOksUnitOfWork()      // MVC action'larda otomatik commit
+    .AddOksResultWrapping(); // MVC result wrapping
 
 var app = builder.Build();
 
 app.UseAuthorization();
 app.MapControllers();
 
+var api = app.MapGroup("/api")
+    .AddOksUnitOfWork()      // Minimal API commit filter
+    .AddOksResultWrapping(); // Minimal API result wrapping filter
+
+api.MapPost("/products", async (Product dto, IWriteRepository<Product, Guid> write) =>
+{
+    await write.AddAsync(dto);
+    return dto;
+});
+
 app.Run();
 ```
 
-## 4) Yazma işlemi yapan controller örneği
+## 4) Skip transaction örneği (Minimal API)
 ```csharp
-using Microsoft.AspNetCore.Mvc;
-using Oks.Persistence.Abstractions.Read;
-using Oks.Persistence.Abstractions.Write;
-using Oks.Web.Attributes;
-
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController : ControllerBase
+api.MapPost("/products/import", async (BulkImportRequest request, IWriteRepository<Product, Guid> write) =>
 {
-    private readonly IReadRepository<Product, Guid> _read;
-    private readonly IWriteRepository<Product, Guid> _write;
-
-    public ProductsController(IReadRepository<Product, Guid> read, IWriteRepository<Product, Guid> write)
-    {
-        _read = read;
-        _write = write;
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create(Product dto)
-    {
-        await _write.AddAsync(dto);
-        return Ok(dto); // SaveChanges action sonunda otomatik tetiklenir
-    }
-
-    [HttpDelete("{id}")]
-    [OksSkipTransaction] // Gerekirse filtreyi tamamen kapatabilirsin
-    public async Task<IActionResult> Delete(Guid id)
-    {
-        var entity = await _read.GetAsync(id);
-        if (entity is null) return NotFound();
-
-        await _write.DeleteAsync(entity);
-        await _write.SaveChangesAsync(); // Filtre kapalıyken manuel commit
-        return NoContent();
-    }
-}
+    // ... import
+    return Result.Ok("İçe aktarma tamamlandı");
+})
+.WithMetadata(new OksSkipTransactionAttribute());
 ```
 
-> İpucu: `AddOksUnitOfWork()` aktifken MVC action ve Minimal API endpoint'lerinde başarılı isteklerde commit otomatik denenir. Bu davranışı belirli action/controller/endpoint için kapatmak istersen `[OksSkipTransaction]` metadata'sını kullanabilirsin.
-
-Bu yapı yazma işlemlerini transaction güvenliği, audit ve soft delete ile birlikte getirir.
-
+> İpucu: `AddOksUnitOfWork()` aktifken MVC action ve Minimal API endpoint'lerinde başarılı isteklerde commit otomatik denenir. Davranışı endpoint/action bazında kapatmak için `[OksSkipTransaction]` metadata'sını kullanabilirsin.

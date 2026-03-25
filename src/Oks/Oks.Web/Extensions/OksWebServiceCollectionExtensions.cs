@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Oks.Web.Filters;
 using Oks.Web.Middleware;
 using Oks.Web.RateLimiting;
@@ -14,15 +12,14 @@ public static class OksWebServiceCollectionExtensions
 {
     /// <summary>
     /// OKS UnitOfWork otomatik commit davranışını ekler.
-    /// MVC action'larda filter, Minimal API endpoint'lerinde middleware ile request sonunda otomatik SaveChanges denenir.
+    /// MVC action'larda filter ile request sonunda otomatik SaveChanges denenir.
+    /// Minimal API endpoint'leri için RouteGroupBuilder üstünde AddOksUnitOfWork() extension'ı kullanılmalıdır.
     /// Değişiklik yoksa IUnitOfWork implementasyonu no-op dönebilir.
     /// </summary>
     public static IMvcBuilder AddOksUnitOfWork(this IMvcBuilder mvcBuilder)
     {
         // Filter'ı DI üzerinden kullanmak için kaydet
         mvcBuilder.Services.AddScoped<OksUnitOfWorkFilter>();
-        mvcBuilder.Services.TryAddEnumerable(
-            ServiceDescriptor.Transient<IStartupFilter, OksUnitOfWorkStartupFilter>());
 
         mvcBuilder.AddMvcOptions(options =>
         {
@@ -68,19 +65,9 @@ public static class OksWebServiceCollectionExtensions
     Action<OksRateLimitOptions>? configureOptions = null)
     {
         var services = mvcBuilder.Services;
-
-        services.AddMemoryCache();
-
-        if (configureOptions is not null)
-        {
-            services.Configure(configureOptions);
-        }
-        else
-        {
-            services.Configure<OksRateLimitOptions>(_ => { });
-        }
-
+        services.AddOksRateLimiting(configureOptions);
         services.AddScoped<OksRateLimitFilter>();
+        services.AddScoped<OksMinimalApiRateLimitFilter>();
 
         mvcBuilder.AddMvcOptions(options =>
         {
@@ -95,17 +82,9 @@ public static class OksWebServiceCollectionExtensions
         Action<OksPerformanceOptions>? configureOptions = null)
     {
         var services = mvcBuilder.Services;
-
-        if (configureOptions is not null)
-        {
-            services.Configure(configureOptions);
-        }
-        else
-        {
-            services.Configure<OksPerformanceOptions>(_ => { });
-        }
-
+        services.AddOksPerformance(configureOptions);
         services.AddScoped<OksPerformanceFilter>();
+        services.AddScoped<OksMinimalApiPerformanceFilter>();
 
         mvcBuilder.AddMvcOptions(options =>
         {
@@ -121,6 +100,37 @@ public static class OksWebServiceCollectionExtensions
     public static IServiceCollection AddOksRequestLogging(this IServiceCollection services)
     {
         services.AddTransient<OksRequestLoggingMiddleware>();
+        return services;
+    }
+
+    public static IApplicationBuilder UseOksRequestLogging(this IApplicationBuilder app)
+        => app.UseMiddleware<OksRequestLoggingMiddleware>();
+
+    public static IServiceCollection AddOksRateLimiting(
+        this IServiceCollection services,
+        Action<OksRateLimitOptions>? configureOptions = null)
+    {
+        services.AddMemoryCache();
+
+        if (configureOptions is not null)
+            services.Configure(configureOptions);
+        else
+            services.Configure<OksRateLimitOptions>(_ => { });
+
+        services.AddScoped<OksMinimalApiRateLimitFilter>();
+        return services;
+    }
+
+    public static IServiceCollection AddOksPerformance(
+        this IServiceCollection services,
+        Action<OksPerformanceOptions>? configureOptions = null)
+    {
+        if (configureOptions is not null)
+            services.Configure(configureOptions);
+        else
+            services.Configure<OksPerformanceOptions>(_ => { });
+
+        services.AddScoped<OksMinimalApiPerformanceFilter>();
         return services;
     }
 }
