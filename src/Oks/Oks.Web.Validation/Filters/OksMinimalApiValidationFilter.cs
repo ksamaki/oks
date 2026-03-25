@@ -1,5 +1,6 @@
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.AspNetCore.Http;
 using Oks.Shared.Results;
 using Oks.Web.Abstractions.Attributes;
 using Oks.Web.Validation.Internal;

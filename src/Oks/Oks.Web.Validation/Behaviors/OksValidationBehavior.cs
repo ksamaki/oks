@@ -76,7 +76,9 @@ public sealed class OksValidationBehavior<TRequest, TResponse> : IPipelineBehavi
                     ? errorDict
                     : null;
 
-                var invoked = failMethod.Invoke(null, new[] { failureData, "Doğrulama hatası oluştu.", ResultStatus.BadRequest, null });
+                var invoked = failMethod.Invoke(
+                    null,
+                    new object?[] { failureData, "Doğrulama hatası oluştu.", ResultStatus.BadRequest, null });
                 if (invoked is TResponse casted)
                 {
                     response = casted;
