@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Oks.Persistence.Abstractions.Repositories;
 using Oks.Web.Abstractions.Attributes;
@@ -22,7 +23,7 @@ public class OksUnitOfWorkMiddleware
         if (context.Response.StatusCode >= StatusCodes.Status500InternalServerError)
             return;
 
-        var endpoint = context.GetEndpoint();
+        var endpoint = context.Features.Get<IEndpointFeature>()?.Endpoint;
         if (endpoint is null)
             return;
 
