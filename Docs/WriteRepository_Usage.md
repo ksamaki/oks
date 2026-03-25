@@ -54,7 +54,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 builder.Services.AddOksEfCore<AppDbContext>();
 
 builder.Services.AddControllers()
-    .AddOksUnitOfWork()    // Action sonunda otomatik SaveChanges
+    .AddOksUnitOfWork()    // MVC + Minimal API sonunda otomatik SaveChanges denemesi
     .AddOksResultWrapping();
 
 var app = builder.Build();
@@ -106,6 +106,7 @@ public class ProductsController : ControllerBase
 }
 ```
 
-> İpucu: `AddOksUnitOfWork()` aktifken başarılı action'larda commit otomatik denenir. Filtreyi belirli action/controller için kapatmak istersen `[OksSkipTransaction]` kullanabilirsin.
+> İpucu: `AddOksUnitOfWork()` aktifken MVC action ve Minimal API endpoint'lerinde başarılı isteklerde commit otomatik denenir. Bu davranışı belirli action/controller/endpoint için kapatmak istersen `[OksSkipTransaction]` metadata'sını kullanabilirsin.
 
 Bu yapı yazma işlemlerini transaction güvenliği, audit ve soft delete ile birlikte getirir.
+

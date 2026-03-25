@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Oks.Web.Filters;
 using Oks.Web.Middleware;
 using Oks.Web.RateLimiting;
@@ -11,14 +13,17 @@ namespace Oks.Web.Extensions;
 public static class OksWebServiceCollectionExtensions
 {
     /// <summary>
-    /// OKS UnitOfWork filtresini MVC pipeline'ına ekler.
-    /// Başarılı action'larda request sonunda otomatik SaveChanges çağrılır.
+    /// OKS UnitOfWork otomatik commit davranışını ekler.
+    /// MVC action'larda filter, Minimal API endpoint'lerinde middleware ile request sonunda otomatik SaveChanges denenir.
     /// Değişiklik yoksa IUnitOfWork implementasyonu no-op dönebilir.
     /// </summary>
     public static IMvcBuilder AddOksUnitOfWork(this IMvcBuilder mvcBuilder)
     {
         // Filter'ı DI üzerinden kullanmak için kaydet
         mvcBuilder.Services.AddScoped<OksUnitOfWorkFilter>();
+        mvcBuilder.Services.AddScoped<OksUnitOfWorkMiddleware>();
+        mvcBuilder.Services.TryAddEnumerable(
+            ServiceDescriptor.Transient<IStartupFilter, OksUnitOfWorkStartupFilter>());
 
         mvcBuilder.AddMvcOptions(options =>
         {
