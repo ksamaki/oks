@@ -26,7 +26,9 @@ public class AuditAndSoftDeleteTests
             new EfWriteRepository<TestUser, int>(context);
         IUnitOfWork uow = new EfUnitOfWork(context);
 
-            new EfWriteRepository<TestUser, int>(context);
+        new EfWriteRepository<TestUser, int>(context);
+        var user = new TestUser { Name = "Yeni Kullanici" };
+        await writeRepo.AddAsync(user);
         await uow.SaveChangesAsync();
 
         user.CreatedBy.Should().Be("test-user");
@@ -40,10 +42,9 @@ public class AuditAndSoftDeleteTests
     public async Task When_Entity_SoftDeleted_It_Should_Not_Appear_In_Queries()
     {
         using var context = CreateInMemoryContext();
-        var writeTracker = new WriteTracker();
 
         IWriteRepository<TestUser, int> writeRepo =
-            new EfWriteRepository<TestUser, int>(context, writeTracker);
+            new EfWriteRepository<TestUser, int>(context);
         IReadRepository<TestUser, int> readRepo =
             new EfReadRepository<TestUser, int>(context);
         IUnitOfWork uow = new EfUnitOfWork(context);
@@ -54,8 +55,7 @@ public class AuditAndSoftDeleteTests
         await uow.SaveChangesAsync();
 
         // soft delete
-        context.Remove(user);
-        writeTracker.MarkWrite(); // normalde EfWriteRepository yapardý
+        writeRepo.Remove(user);
         await uow.SaveChangesAsync();
 
         user.IsDeleted.Should().BeTrue();
