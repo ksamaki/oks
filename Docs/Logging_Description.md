@@ -2,21 +2,21 @@
 
 [Ana sayfa](../README.md)
 
-OKS logging modülü; Request, Exception, Performance, RateLimit, Repository, Audit ve Custom kategorilerini destekleyen modüler bir pipeline sunar. IOksLogWriter uygulanmadığında bile uygulama kırılmaz; eklendiğinde otomatik olarak log yazmaya başlar.
+OKS logging modülü; **Request, Exception, Performance, RateLimit, Repository, Audit ve Custom** kategorilerini destekleyen modüler bir pipeline sunar. MVC ve Minimal API birlikte kullanılabilir.
 
 ## Log tipleri
-| Log Tipi      | Açıklama |
-|---------------|----------|
-| **Request**   | Tüm HTTP istekleri (path, method, status, süre, client ip, vs.) |
-| **Exception** | Global yakalanmamış hatalar |
-| **Performance** | Controller action süreleri ve threshold aşımı |
-| **RateLimit** | Rate limit ihlalleri (429) |
-| **Repository** | EfRead/EfWrite operasyon süreleri (Read/Write) |
-| **Audit**     | Entity Insert / Update / Delete değişiklikleri |
-| **Custom**    | Kod içinden IOksLogWriter ile atılan özel loglar |
+| Log Tipi | MVC | Minimal API | Kaynak |
+|---|---|---|---|
+| Request | ✅ | ✅ | `OksRequestLoggingMiddleware` |
+| Exception | ✅ | ✅ | `OksExceptionMiddleware` |
+| Performance | ✅ | ✅ | MVC Filter + Minimal API `IEndpointFilter` |
+| RateLimit | ✅ | ✅ | MVC Filter + Minimal API `IEndpointFilter` |
+| Repository | ✅ | ✅ | `EfReadRepository` / `EfWriteRepository` |
+| Audit | ✅ | ✅ | `EfUnitOfWork` |
+| Custom | ✅ | ✅ | `IOksLogWriter` |
 
-## Log tabloları ve migration
-`Oks.Logging.EfCore` içerisinde aşağıdaki tablolar tanımlıdır:
+## Log tabloları
+`Oks.Logging.EfCore`:
 - `OksLogRequest`
 - `OksLogException`
 - `OksLogPerformance`
@@ -25,16 +25,17 @@ OKS logging modülü; Request, Exception, Performance, RateLimit, Repository, Au
 - `OksLogAudit`
 - `OksLogCustom`
 
-`ModelBuilderExtensions.AddOksLogging(modelBuilder)` çağrıldığında bu tablolar EF modeline dahil olur ve standart EF Core migration'larına eklenir.
+`modelBuilder.AddOksLogging()` çağrısı bu tabloları EF modeline ekler.
 
-`Update-Database` (veya uygulama açılışında `Database.Migrate`) çalıştığında log tabloları otomatik oluşturulur; ekstra script yazmana gerek yoktur.
+## Attribute / Metadata desteği
+- `[OksPerformance(thresholdMs)]`
+- `[OksSkipPerformance]`
+- `[OksRateLimit(requestsPerMinute)]`
+- `[OksSkipRateLimit]`
 
-## Attribute desteği
-- `[OksPerformance(ThresholdMilliseconds = 200)]` ile action bazında performans eşiği belirleyebilirsin.
-- `[OksRateLimit(MaxRequests = 10, WindowSeconds = 60)]` ile belirli uçlara özel hız limiti koyabilirsin.
-- `[OksSkipPerformance]` veya `[OksSkipRateLimit]` attribute'ları belirli sınıf/metotlarda ilgili logu devre dışı bırakır fakat işlem çalışmaya devam eder.
+Bu metadata'lar MVC action/controller üzerinde attribute olarak, Minimal API tarafında `.WithMetadata(...)` ile kullanılabilir.
 
 ---
 ## Usage
 
-Kurulum ve kopyala-yapıştır kod örnekleri için: [Logging_Usage.md](Logging_Usage.md)
+Kurulum ve örnekler için: [Logging_Usage.md](Logging_Usage.md)
