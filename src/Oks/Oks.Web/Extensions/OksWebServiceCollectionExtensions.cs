@@ -21,7 +21,6 @@ public static class OksWebServiceCollectionExtensions
     {
         // Filter'ı DI üzerinden kullanmak için kaydet
         mvcBuilder.Services.AddScoped<OksUnitOfWorkFilter>();
-        mvcBuilder.Services.AddScoped<OksUnitOfWorkMiddleware>();
         mvcBuilder.Services.TryAddEnumerable(
             ServiceDescriptor.Transient<IStartupFilter, OksUnitOfWorkStartupFilter>());
 
