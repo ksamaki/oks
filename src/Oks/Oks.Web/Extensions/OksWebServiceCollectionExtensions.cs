@@ -1,15 +1,25 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Oks.Persistence.Abstractions;
 using Oks.Web.Filters;
 using Oks.Web.Middleware;
 using Oks.Web.RateLimiting;
 using Oks.Web.Performance;
+using Oks.Web.Users;
 
 namespace Oks.Web.Extensions;
 
 public static class OksWebServiceCollectionExtensions
 {
+    public static IServiceCollection AddOksCurrentUserProvider(this IServiceCollection services)
+    {
+        services.AddHttpContextAccessor();
+        services.Replace(ServiceDescriptor.Scoped<IOksUserProvider, HttpContextOksUserProvider>());
+        return services;
+    }
+
     /// <summary>
     /// OKS UnitOfWork otomatik commit davranışını ekler.
     /// MVC action'larda filter ile request sonunda otomatik SaveChanges denenir.

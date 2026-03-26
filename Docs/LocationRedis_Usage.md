@@ -2,7 +2,7 @@
 
 [Location Redis - Description](LocationRedis_Description.md) | [Ana sayfa](../README.md)
 
-Aşağıdaki örnek, `Oks.Location.Redis` kontratlarını WaitMe proximity senaryosunda nasıl kullanabileceğini gösterir.
+Aşağıdaki örnek, `Oks.Location.Redis` kontratlarının domain bağımsız GeoSpatial kullanımını gösterir.
 
 ## 1) Proje referansları (`.csproj`)
 ```xml
@@ -12,20 +12,23 @@ Aşağıdaki örnek, `Oks.Location.Redis` kontratlarını WaitMe proximity senar
 </ItemGroup>
 ```
 
-## 2) `ILocationWriteRepository` implementasyonu (örnek iskelet)
+## 2) `IGeoSpatialWriteRepository` implementasyonu
 ```csharp
 using Oks.Location.Redis.Contracts;
 using Oks.Location.Redis.Models;
 
-public sealed class UserLocationWriteRepository : ILocationWriteRepository<UserLocation, Guid>
+public sealed class UserGeoWriteRepository : IGeoSpatialWriteRepository<UserLocation, Guid>
 {
     public Task AddAsync(UserLocation entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
     public void Update(UserLocation entity) { }
     public void Remove(UserLocation entity) { }
 
-    // IReadRepository üyeleri burada mevcut repository standardına göre implement edilir.
+    public IQueryable<UserLocation> Query() => throw new NotImplementedException();
+    public Task<UserLocation?> GetAsync(Expression<Func<UserLocation, bool>> predicate, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public Task<UserLocation?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public Task<List<UserLocation>> GetListAsync(Expression<Func<UserLocation, bool>>? predicate = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-    public Task UpdateLocationAsync(UserLocation entity, GeoPoint point, CancellationToken cancellationToken = default)
+    public Task UpdatePositionAsync(UserLocation entity, GeoCoordinate point, CancellationToken cancellationToken = default)
     {
         entity.SetCoordinates(point.Latitude, point.Longitude);
         Update(entity);
@@ -34,17 +37,17 @@ public sealed class UserLocationWriteRepository : ILocationWriteRepository<UserL
 }
 ```
 
-## 3) Proximity matcher servisi (örnek)
+## 3) Geo matcher servisi
 ```csharp
 using Microsoft.Extensions.Caching.Distributed;
 using Oks.Location.Redis.Contracts;
 using Oks.Location.Redis.Models;
 
-public sealed class WaitMeProximityMatcher : IProximityMatcher
+public sealed class GeoMatcher : IGeoSpatialMatcher
 {
-    private readonly ILocationGeoCache _geoCache;
+    private readonly IGeoSpatialCache _geoCache;
 
-    public WaitMeProximityMatcher(ILocationGeoCache geoCache, IDistributedCache distributedCache)
+    public GeoMatcher(IGeoSpatialCache geoCache, IDistributedCache distributedCache)
     {
         _geoCache = geoCache;
         DistributedCache = distributedCache;
@@ -52,9 +55,9 @@ public sealed class WaitMeProximityMatcher : IProximityMatcher
 
     public IDistributedCache DistributedCache { get; }
 
-    public Task<IReadOnlyCollection<ProximityMatch>> FindNearbyAsync(
+    public Task<IReadOnlyCollection<GeoRadiusMatch>> FindNearbyAsync(
         string geoKey,
-        GeoPoint center,
+        GeoCoordinate center,
         double radiusInMeters,
         int take = 50,
         CancellationToken cancellationToken = default)
@@ -62,18 +65,6 @@ public sealed class WaitMeProximityMatcher : IProximityMatcher
 }
 ```
 
-## 4) Uygulama servisinde kullanım (örnek)
-```csharp
-public sealed class NearbyUsersQueryService
-{
-    private readonly IProximityMatcher _matcher;
-
-    public NearbyUsersQueryService(IProximityMatcher matcher)
-    {
-        _matcher = matcher;
-    }
-
-    public Task<IReadOnlyCollection<ProximityMatch>> ExecuteAsync(double lat, double lng, CancellationToken cancellationToken)
-        => _matcher.FindNearbyAsync("waitme:users", new GeoPoint(lat, lng), radiusInMeters: 2_000, take: 100, cancellationToken);
-}
-```
+## Migration notu
+- Eski isimler (`ILocationWriteRepository`, `ILocationGeoCache`, `IProximityMatcher`, `GeoPoint`, `ProximityMatch`) **çalışmaya devam eder**.
+- Yeni geliştirmelerde `IGeoSpatial*` ve `GeoCoordinate/GeoRadiusMatch` kullanılması önerilir.

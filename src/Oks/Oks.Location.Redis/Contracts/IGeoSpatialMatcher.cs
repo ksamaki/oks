@@ -3,14 +3,13 @@ using Oks.Location.Redis.Models;
 
 namespace Oks.Location.Redis.Contracts;
 
-[Obsolete("Use IGeoSpatialMatcher instead. IProximityMatcher is kept for backward compatibility.")]
-public interface IProximityMatcher
+public interface IGeoSpatialMatcher
 {
     IDistributedCache DistributedCache { get; }
 
-    Task<IReadOnlyCollection<ProximityMatch>> FindNearbyAsync(
+    Task<IReadOnlyCollection<GeoRadiusMatch>> FindNearbyAsync(
         string geoKey,
-        GeoPoint center,
+        GeoCoordinate center,
         double radiusInMeters,
         int take = 50,
         CancellationToken cancellationToken = default);

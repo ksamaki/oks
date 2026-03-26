@@ -15,7 +15,7 @@ public class AuditAndSoftDeleteTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        return new TestDbContext(options);
+        return new TestDbContext(options, new StaticOksUserProvider("test-user"));
     }
 
     [Fact]
@@ -64,5 +64,23 @@ public class AuditAndSoftDeleteTests
 
         var list = await readRepo.GetListAsync();
         list.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAsync_Should_Apply_Predicate_On_Query()
+    {
+        using var context = CreateInMemoryContext();
+        IWriteRepository<TestUser, int> writeRepo = new EfWriteRepository<TestUser, int>(context);
+        IReadRepository<TestUser, int> readRepo = new EfReadRepository<TestUser, int>(context);
+        IUnitOfWork uow = new EfUnitOfWork(context);
+
+        await writeRepo.AddAsync(new TestUser { Name = "Alpha" });
+        await writeRepo.AddAsync(new TestUser { Name = "Beta" });
+        await uow.SaveChangesAsync();
+
+        var user = await readRepo.GetAsync(x => x.Name == "Beta");
+
+        user.Should().NotBeNull();
+        user!.Name.Should().Be("Beta");
     }
 }

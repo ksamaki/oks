@@ -2,18 +2,18 @@
 
 [Ana sayfa](../README.md)
 
-OKS read-only repository katmanı, veri okumayı yazma işlerinden ayırarak CQRS dostu ve test edilebilir bir altyapı sağlar. `IReadRepository<TEntity, TKey>` arabirimi; tekil kayıt, liste, sayfalama ve sorgu desteğini soyutlar. EF Core implementasyonu query filtreleri (soft delete) ve `AsNoTracking` varsayılanlarıyla gelir.
+OKS read-only repository katmanı, veri okumayı yazma işlerinden ayırarak CQRS dostu ve test edilebilir bir altyapı sağlar. `IReadRepository<TEntity, TKey>` artık hem `GetByIdAsync` hem de SQL'e çevrilebilir predicate alan `GetAsync` / `GetListAsync` overload'larını içerir.
 
 ## Başlıca bileşenler
 - **Oks.Persistence.Abstractions**: `IReadRepository` arabirimi ve ortak modeller.
-- **Oks.Persistence.EfCore**: EF Core implementasyonu, DbContext taban sınıfı (`OksDbContextBase`) ve soft delete + audit alt yapısı.
-- **Oks.Web.Abstractions**: HTTP pipeline için ortak filtre/attribute sözleşmeleri.
-- **Oks.Domain**: `Entity`, `AuditedEntity` ve `IAuditedEntity` taban tipleri ile veri modelini standardize eder.
+- **Oks.Persistence.EfCore**: EF Core implementasyonu, `AsNoTracking` varsayılanları ve soft-delete query filter.
+- **Oks.Web**: HTTP tabanlı current user provider entegrasyonu (`IOksUserProvider`).
 
-## Ne zaman kullanılır?
-- Sadece okuma yapan API uçları için hafif ve güvenli repository erişimi istediğinde.
-- Soft delete uygulanmış tablolarda otomatik `IsDeleted = false` filtresiyle çalışmak için.
-- Yazma yetkisi olmayan servisler veya read-model uygulamaları için.
+## Neler sağlar?
+- Predicate'lerin DB tarafında çalışması (client-side evaluation riski azaltılır).
+- `AsNoTracking` ile read performansı.
+- Mevcut `GetByIdAsync` API ile geriye uyumluluk.
+- `Query()` üzerinden sorting/paging için genişlemeye açık yapı.
 
 ---
 ## Usage

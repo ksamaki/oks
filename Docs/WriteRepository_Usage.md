@@ -17,7 +17,7 @@ Aşağıdaki adımları kopyalayarak yazma repository katmanını transaction fi
 ```
 
 ## 2) DbContext ve audit
-Audit için `OksDbContextBase` kullanılır; kullanıcı bilgisini audit kayıtlarında kullanmak için `GetCurrentUserIdentifier`'ı doldur.
+Audit için `OksDbContextBase` kullanılır; kullanıcı bilgisi `IOksUserProvider` üzerinden alınır.
 
 ## 3) DI ve pipeline kurulumu
 ```csharp
@@ -31,6 +31,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddOksEfCore<AppDbContext>();
+builder.Services.AddOksCurrentUserProvider();
 
 builder.Services.AddControllers()
     .AddOksUnitOfWork()      // MVC action'larda otomatik commit

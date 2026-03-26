@@ -4,6 +4,7 @@ using Oks.Persistence.Abstractions.Repositories;
 
 namespace Oks.Location.Redis.Contracts;
 
+[Obsolete("Use IGeoSpatialWriteRepository<TEntity, TKey> instead. ILocationWriteRepository is kept for backward compatibility.")]
 public interface ILocationWriteRepository<TEntity, TKey> : IWriteRepository<TEntity, TKey>
     where TEntity : Entity<TKey>
 {

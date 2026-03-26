@@ -1,7 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Oks.Persistence.Abstractions;
 using Oks.Persistence.Abstractions.Repositories;
 using Oks.Persistence.EfCore.Repositories;
+using Oks.Persistence.EfCore.Users;
 
 namespace Oks.Persistence.EfCore;
 
@@ -17,6 +20,9 @@ public static class ServiceCollectionExtensions
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+
+        // Web dışı senaryolarda güvenli fallback user provider.
+        services.TryAddScoped<IOksUserProvider>(_ => NullOksUserProvider.Instance);
 
         // Generic repository implementasyonları
         services.AddKeyedScoped(typeof(IReadRepository<,>), "base", typeof(EfReadRepository<,>));
