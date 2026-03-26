@@ -8,6 +8,10 @@ public interface IReadRepository<TEntity, TKey>
 {
     IQueryable<TEntity> Query();
 
+    Task<TEntity?> GetAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default);
+
     Task<TEntity?> GetByIdAsync(
         TKey id,
         CancellationToken cancellationToken = default);

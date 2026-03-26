@@ -55,6 +55,23 @@ public class CachedReadRepository<TEntity, TKey>
             cancellationToken);
     }
 
+    public async Task<TEntity?> GetAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        var cacheable = ResolveCacheableAttribute();
+        var key = cacheable?.KeyTemplate is { Length: > 0 }
+            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, predicate.ToString())
+            : _keyBuilder.ForRead<TEntity>("Get", predicate.ToString());
+
+        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
+
+        return await _cacheService.GetOrAddAsync(key,
+            () => _inner.GetAsync(predicate, cancellationToken),
+            options,
+            cancellationToken);
+    }
+
     public async Task<List<TEntity>> GetListAsync(
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)

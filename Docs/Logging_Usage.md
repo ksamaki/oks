@@ -32,8 +32,7 @@ public class AppDbContext : OksDbContextBase
         modelBuilder.AddOksLogging();
     }
 
-    protected override string? GetCurrentUserIdentifier() => "demo-user";
-}
+    }
 ```
 
 ## 3) DI + Middleware + MVC/Minimal API pipeline
@@ -49,6 +48,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddOksEfCore<AppDbContext>();
+builder.Services.AddOksCurrentUserProvider();
 
 // Writer + repository/audit logging
 builder.Services.AddOksLogging<AppDbContext>();

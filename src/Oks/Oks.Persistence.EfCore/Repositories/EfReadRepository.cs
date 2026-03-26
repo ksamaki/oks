@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Oks.Domain.Base;
 using Oks.Logging.Abstractions.Enums;
@@ -39,15 +39,33 @@ public class EfReadRepository<TEntity, TKey>
     }
 
     public IQueryable<TEntity> Query()
-        => DbSet.AsQueryable();
+        => DbSet.AsNoTracking();
+
+    public async Task<TEntity?> GetAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        return await MeasureReadAsync(
+            "Get",
+            async () => await DbSet.AsNoTracking()
+                .Where(predicate)
+                .FirstOrDefaultAsync(cancellationToken));
+    }
 
     public async Task<TEntity?> GetByIdAsync(
         TKey id,
         CancellationToken cancellationToken = default)
     {
+        var parameter = Expression.Parameter(typeof(TEntity), "x");
+        var idProperty = Expression.Property(parameter, nameof(Entity<TKey>.Id));
+        var constant = Expression.Constant(id, typeof(TKey));
+        var body = Expression.Equal(idProperty, constant);
+        var predicate = Expression.Lambda<Func<TEntity, bool>>(body, parameter);
+
         return await MeasureReadAsync(
             "GetById",
-            async () => await DbSet.FindAsync(new object[] { id! }, cancellationToken));
+            async () => await DbSet.AsNoTracking()
+                .FirstOrDefaultAsync(predicate, cancellationToken));
     }
 
     public async Task<List<TEntity>> GetListAsync(
@@ -58,7 +76,7 @@ public class EfReadRepository<TEntity, TKey>
             "GetList",
             async () =>
             {
-                IQueryable<TEntity> query = DbSet;
+                IQueryable<TEntity> query = DbSet.AsNoTracking();
 
                 if (predicate is not null)
                 {

@@ -2,13 +2,12 @@ using Oks.Location.Redis.Models;
 
 namespace Oks.Location.Redis.Contracts;
 
-[Obsolete("Use IGeoSpatialCache instead. ILocationGeoCache is kept for backward compatibility.")]
-public interface ILocationGeoCache
+public interface IGeoSpatialCache
 {
     Task SetPositionAsync(
         string geoKey,
         string memberId,
-        GeoPoint point,
+        GeoCoordinate point,
         CancellationToken cancellationToken = default);
 
     Task RemovePositionAsync(
@@ -16,9 +15,9 @@ public interface ILocationGeoCache
         string memberId,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<ProximityMatch>> SearchRadiusAsync(
+    Task<IReadOnlyCollection<GeoRadiusMatch>> SearchRadiusAsync(
         string geoKey,
-        GeoPoint center,
+        GeoCoordinate center,
         double radiusInMeters,
         int take = 50,
         CancellationToken cancellationToken = default);

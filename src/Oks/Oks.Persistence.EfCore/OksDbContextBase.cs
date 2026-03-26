@@ -1,16 +1,29 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Oks.Domain.Base;
+using Oks.Persistence.Abstractions;
+using Oks.Persistence.EfCore.Users;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Oks.Persistence.EfCore;
 
 public abstract class OksDbContextBase : DbContext
 {
+    private readonly IOksUserProvider? _explicitUserProvider;
+
     protected OksDbContextBase(DbContextOptions options)
         : base(options)
     {
+    }
+
+    // Geriye uyumluluk + test kolaylığı: isteyen explicit provider da verebilir.
+    protected OksDbContextBase(
+        DbContextOptions options,
+        IOksUserProvider? userProvider)
+        : base(options)
+    {
+        _explicitUserProvider = userProvider;
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -20,9 +33,6 @@ public abstract class OksDbContextBase : DbContext
         ApplyGlobalQueryFilters(modelBuilder);
     }
 
-    /// <summary>
-    /// SaveChanges çağrılmadan hemen önce audit ve soft delete mantığını uygular.
-    /// </summary>
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ApplyAuditInfo();
@@ -36,7 +46,7 @@ public abstract class OksDbContextBase : DbContext
     private void ApplyAuditInfo()
     {
         var now = DateTime.UtcNow;
-        var currentUser = GetCurrentUserIdentifier();
+        var currentUser = ResolveCurrentUserIdentifier();
 
         foreach (EntityEntry entry in ChangeTracker.Entries())
         {
@@ -51,7 +61,6 @@ public abstract class OksDbContextBase : DbContext
                 case EntityState.Added:
                     audited.CreatedAt = now;
                     audited.CreatedBy ??= currentUser;
-                    // İlk oluştururken diğer alanları sıfırlayalım
                     audited.UpdatedAt = default;
                     audited.UpdatedBy = null;
                     audited.DeletedAt = null;
@@ -70,7 +79,7 @@ public abstract class OksDbContextBase : DbContext
     private void ApplySoftDelete()
     {
         var now = DateTime.UtcNow;
-        var currentUser = GetCurrentUserIdentifier();
+        var currentUser = ResolveCurrentUserIdentifier();
 
         foreach (EntityEntry entry in ChangeTracker.Entries())
         {
@@ -82,7 +91,6 @@ public abstract class OksDbContextBase : DbContext
 
             if (entry.State == EntityState.Deleted)
             {
-                // Hard delete yerine soft delete
                 entry.State = EntityState.Modified;
 
                 audited.IsDeleted = true;
@@ -92,19 +100,21 @@ public abstract class OksDbContextBase : DbContext
         }
     }
 
-    /// <summary>
-    /// Mevcut kullanıcı bilgisini elde etmek için override edilebilir nokta.
-    /// Bunu override edip HttpContext'ten kullanıcı adını/id'sini alabiliriz.
-    /// </summary>
-    protected virtual string? GetCurrentUserIdentifier() => null;
+    private string? ResolveCurrentUserIdentifier()
+    {
+        if (_explicitUserProvider is not null)
+            return _explicitUserProvider.GetCurrentUserIdentifier();
+
+        var scopedProvider = ((IInfrastructure<IServiceProvider>)this).Instance
+            .GetService(typeof(IOksUserProvider)) as IOksUserProvider;
+
+        return scopedProvider?.GetCurrentUserIdentifier()
+               ?? NullOksUserProvider.Instance.GetCurrentUserIdentifier();
+    }
 
     #endregion
 
     #region Global Query Filters (IsDeleted == false)
-
-    private static readonly MethodInfo EfPropertyMethod =
-        typeof(EF).GetMethod(nameof(EF.Property))!
-            .GetGenericMethodDefinition();
 
     private void ApplyGlobalQueryFilters(ModelBuilder modelBuilder)
     {
@@ -116,16 +126,11 @@ public abstract class OksDbContextBase : DbContext
                 continue;
 
             var parameter = Expression.Parameter(clrType, "e");
-
-            // e => !((IAuditedEntity)e).IsDeleted
             var prop = Expression.Property(
                 Expression.Convert(parameter, typeof(IAuditedEntity)),
                 nameof(IAuditedEntity.IsDeleted));
 
-            var body = Expression.Equal(
-                prop,
-                Expression.Constant(false));
-
+            var body = Expression.Equal(prop, Expression.Constant(false));
             var lambda = Expression.Lambda(body, parameter);
 
             modelBuilder.Entity(clrType).HasQueryFilter(lambda);

@@ -2,17 +2,22 @@
 
 [Ana sayfa](../README.md)
 
-`Oks.Location.Redis`, WaitMe proximity/yakınlık hesapları için Redis GeoSpatial kullanımını standardize eden **kontrat paketidir**. Amaç; konum güncellemelerini `IWriteRepository` akışıyla uyumlu sürdürmek ve Redis tarafında `IDistributedCache` standardı etrafında eşleştirme kontratları sağlamaktır.
+`Oks.Location.Redis`, artık yalnızca "location" domain'i ile sınırlı olmayacak şekilde framework genelinde kullanılabilen GeoSpatial kontratlar sunar.
 
 ## Başlıca bileşenler
-- **`ILocationWriteRepository<TEntity, TKey>`**: `IWriteRepository` tabanlı yazma kontratına konum güncelleme davranışı ekler.
-- **`ILocationGeoCache`**: Redis GEOADD/GEORADIUS benzeri operasyonların provider-bağımsız kontratı.
-- **`IProximityMatcher`**: `IDistributedCache` erişimiyle proximity sorgulamasını aynı servis yüzeyinde toplar.
+- **Yeni genel kontratlar**
+  - `IGeoSpatialWriteRepository<TEntity, TKey>`
+  - `IGeoSpatialCache`
+  - `IGeoSpatialMatcher`
+  - `GeoCoordinate`, `GeoRadiusMatch`
+- **Geriye uyumluluk katmanı**
+  - `ILocationWriteRepository`, `ILocationGeoCache`, `IProximityMatcher`
+  - `GeoPoint`, `ProximityMatch` (obsolete olarak korunur)
 
 ## Neler sağlar?
-- Domain yazma akışını bozmadan konum güncelleme standardı (`UpdateLocationAsync`).
-- Yakın kullanıcı aramalarında ortak metod imzaları (`FindNearbyAsync`, `SearchRadiusAsync`).
-- Altyapı implementasyonlarını (StackExchange.Redis vb.) uygulamadan ayrıştırır.
+- Domain bağımsız GeoSpatial adlandırma.
+- Mevcut implementasyonlar için kırılmayan geçiş.
+- Redis/IDistributedCache tabanlı altyapı implementasyonlarını uygulamadan ayrıştırma.
 
 > Not: Bu paket yalnızca sözleşme (interface + model) içerir; Redis client implementasyonu içermez.
 

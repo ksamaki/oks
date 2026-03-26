@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackageId>Oks.Location.Redis</PackageId>
-    <Description>Redis GeoSpatial contracts and models for Oks location-based matching.</Description>
+    <Description>Redis GeoSpatial contracts and models for domain-agnostic Oks framework scenarios.</Description>
   </PropertyGroup>
 
 

@@ -8,15 +8,14 @@ Aşağıdaki adımları doğrudan kopyala-yapıştır ederek projene read-only r
 ```xml
 <ItemGroup>
   <ProjectReference Include="..\\src\\Oks\\Oks.Domain\\Oks.Domain.csproj" />
-  <ProjectReference Include="..\\src\\Oks\\Oks.Shared\\Oks.Shared.csproj" />
   <ProjectReference Include="..\\src\\Oks\\Oks.Persistence.Abstractions\\Oks.Persistence.Abstractions.csproj" />
   <ProjectReference Include="..\\src\\Oks\\Oks.Persistence.EfCore\\Oks.Persistence.EfCore.csproj" />
-  <ProjectReference Include="..\\src\\Oks\\Oks.Web.Abstractions\\Oks.Web.Abstractions.csproj" />
+  <ProjectReference Include="..\\src\\Oks\\Oks.Web\\Oks.Web.csproj" />
 </ItemGroup>
 ```
 
 ## 2) DbContext'i hazırla
-`OksDbContextBase` soft delete ve audit alanlarını yönetir; read-only senaryoda da aynı taban sınıfı kullanılabilir.
+`OksDbContextBase` soft delete ve audit alanlarını yönetir.
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Oks.Persistence.EfCore;
@@ -24,43 +23,29 @@ using Oks.Persistence.EfCore;
 public class AppDbContext : OksDbContextBase
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-    protected override string? GetCurrentUserIdentifier()
-    {
-        // Okuma senaryosunda kullanıcıyı izlemek zorunlu değildir.
-        return null;
-    }
 }
 ```
 
-## 3) DI kaydı ve minimal pipeline
+## 3) DI kaydı
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using Oks.Persistence.EfCore.Extensions;
-using Oks.Web.Extensions; // Result wrapping için
+using Oks.Persistence.EfCore;
+using Oks.Web.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
-builder.Services.AddOksEfCore<AppDbContext>(); // IReadRepository / IWriteRepository kayıtları
-
-builder.Services.AddControllers()
-    .AddOksResultWrapping(); // Opsiyonel: standart API yanıtları
-
-var app = builder.Build();
-
-app.UseAuthorization();
-app.MapControllers();
-
-app.Run();
+builder.Services.AddOksEfCore<AppDbContext>();
+builder.Services.AddOksCurrentUserProvider(); // Web claim tabanlı IOksUserProvider
+// Minimal API endpoint'lerinde de aynı provider geçerlidir.
 ```
 
-## 4) Okuma yapan bir controller örneği
+## 4) Controller örneği
 ```csharp
 using Microsoft.AspNetCore.Mvc;
-using Oks.Persistence.Abstractions.Read;
+using Oks.Persistence.Abstractions.Repositories;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -76,9 +61,23 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public Task<List<Product>> Get() => _read.GetListAsync();
 
-    [HttpGet("{id}")]
-    public Task<Product?> GetById(Guid id) => _read.GetAsync(id);
+    [HttpGet("search")]
+    public Task<Product?> GetBySku(string sku) => _read.GetAsync(x => x.Sku == sku);
+
+    [HttpGet("{id:guid}")]
+    public Task<Product?> GetById(Guid id) => _read.GetByIdAsync(id);
 }
 ```
 
-Bu yapı sayesinde yazma yetkileri olmadan, otomatik soft delete filtresiyle güvenli okuma yapabilirsin.
+## 5) SQL seviyesinde filtre + paging/sorting
+`GetAsync` ve `GetListAsync(predicate)` parametreleri `Expression<Func<...>>` aldığı için EF Core tarafından SQL'e çevrilir.
+
+Daha ileri sorting/paging için `Query()` üzerinden genişleyebilirsin:
+```csharp
+var page = await _read.Query()
+    .Where(x => x.CategoryId == categoryId)
+    .OrderBy(x => x.Name)
+    .Skip((pageIndex - 1) * pageSize)
+    .Take(pageSize)
+    .ToListAsync(cancellationToken);
+```
