@@ -1,9 +1,8 @@
-using System.Diagnostics;
 using System.Linq.Expressions;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Oks.Caching.Abstractions;
+using Oks.Caching.Internal;
 using Oks.Caching.Tags;
 using Oks.Domain.Base;
 using Oks.Persistence.Abstractions.Repositories;
@@ -18,6 +17,7 @@ public class CachedReadRepository<TEntity, TKey>
     private readonly ICacheService _cacheService;
     private readonly ICacheKeyBuilder _keyBuilder;
     private readonly CacheEntryOptions _defaults;
+    private readonly RepositoryQueryCacheScope _queryScope;
 
     public CachedReadRepository(
         [FromKeyedServices("base")] IReadRepository<TEntity, TKey> inner,
@@ -33,6 +33,7 @@ public class CachedReadRepository<TEntity, TKey>
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
             SoftExpiration = TimeSpan.FromSeconds(30)
         };
+        _queryScope = cachingOptions?.Value.RepositoryQueryCacheScope ?? RepositoryQueryCacheScope.ListOnly;
     }
 
     public IQueryable<TEntity> Query()
@@ -42,12 +43,15 @@ public class CachedReadRepository<TEntity, TKey>
         TKey id,
         CancellationToken cancellationToken = default)
     {
-        var cacheable = ResolveCacheableAttribute();
-        var key = cacheable?.KeyTemplate is { Length: > 0 }
-            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, new { id })
+        var policy = ResolvePolicy();
+        if (!policy.Enabled || _queryScope == RepositoryQueryCacheScope.ListOnly)
+            return await _inner.GetByIdAsync(id, cancellationToken);
+
+        var key = policy.KeyTemplate is { Length: > 0 }
+            ? _keyBuilder.FromTemplate(policy.KeyTemplate, new { id })
             : _keyBuilder.ForRead<TEntity>("GetById", new { id });
 
-        var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), cacheable);
+        var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), policy);
 
         return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetByIdAsync(id, cancellationToken),
@@ -59,12 +63,15 @@ public class CachedReadRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
-        var cacheable = ResolveCacheableAttribute();
-        var key = cacheable?.KeyTemplate is { Length: > 0 }
-            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, predicate.ToString())
+        var policy = ResolvePolicy();
+        if (!policy.Enabled || _queryScope == RepositoryQueryCacheScope.ListOnly)
+            return await _inner.GetAsync(predicate, cancellationToken);
+
+        var key = policy.KeyTemplate is { Length: > 0 }
+            ? _keyBuilder.FromTemplate(policy.KeyTemplate, predicate.ToString())
             : _keyBuilder.ForRead<TEntity>("Get", predicate.ToString());
 
-        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
+        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy);
 
         return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetAsync(predicate, cancellationToken),
@@ -76,12 +83,15 @@ public class CachedReadRepository<TEntity, TKey>
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
-        var cacheable = ResolveCacheableAttribute();
-        var key = cacheable?.KeyTemplate is { Length: > 0 }
-            ? _keyBuilder.FromTemplate(cacheable.KeyTemplate, predicate?.ToString())
+        var policy = ResolvePolicy();
+        if (!policy.Enabled)
+            return await _inner.GetListAsync(predicate, cancellationToken);
+
+        var key = policy.KeyTemplate is { Length: > 0 }
+            ? _keyBuilder.FromTemplate(policy.KeyTemplate, predicate?.ToString())
             : _keyBuilder.ForRead<TEntity>("GetList", predicate?.ToString());
 
-        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), cacheable);
+        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy);
 
         return await _cacheService.GetOrAddAsync(key,
             () => _inner.GetListAsync(predicate, cancellationToken),
@@ -89,37 +99,52 @@ public class CachedReadRepository<TEntity, TKey>
             cancellationToken);
     }
 
-    private CacheableAttribute? ResolveCacheableAttribute()
+    private CachePolicy ResolvePolicy()
     {
-        var trace = new StackTrace();
-        foreach (var frame in trace.GetFrames() ?? Array.Empty<StackFrame>())
-        {
-            var method = frame.GetMethod();
-            if (method is null)
-                continue;
+        var entityCacheable = typeof(TEntity).GetCustomAttributes(typeof(CacheableAttribute), true)
+            .Cast<CacheableAttribute>()
+            .FirstOrDefault();
+        var methodCacheable = CacheInvocationContextResolver.ResolveCacheable<CachedReadRepository<TEntity, TKey>>();
+        var custom = CacheInvocationContextResolver.ResolveCustomCache<CachedReadRepository<TEntity, TKey>>();
 
-            if (method.DeclaringType?.Assembly == typeof(CachedReadRepository<,>).Assembly)
-                continue;
+        var hasCacheable = entityCacheable is not null || methodCacheable is not null;
+        var hasCustomCache = custom is { Evict: false };
 
-            var attribute = method.GetCustomAttribute<CacheableAttribute>(inherit: true);
-            if (attribute is not null)
-                return attribute;
-        }
+        var enabled = hasCacheable || hasCustomCache;
+        var source = custom is { Evict: false }
+            ? custom
+            : (object?)methodCacheable ?? entityCacheable;
 
-        return null;
+        return new CachePolicy(
+            enabled,
+            source switch
+            {
+                CustomCacheAttribute customCache => customCache.KeyTemplate,
+                CacheableAttribute cacheable => cacheable.KeyTemplate,
+                _ => string.Empty
+            },
+            source switch
+            {
+                CustomCacheAttribute customCache => customCache.DurationSeconds,
+                CacheableAttribute cacheable => cacheable.DurationSeconds,
+                _ => 0
+            },
+            source switch
+            {
+                CustomCacheAttribute customCache => customCache.Tags,
+                CacheableAttribute cacheable => cacheable.Tags,
+                _ => Array.Empty<string>()
+            });
     }
 
-    private CacheEntryOptions WithTags(
-        IReadOnlyCollection<string> tags,
-        CacheableAttribute? cacheable)
+    private CacheEntryOptions WithTags(IReadOnlyCollection<string> tags, CachePolicy policy)
     {
-        var mergedTags = cacheable?.Tags is { Length: > 0 }
-            ? tags.Concat(cacheable.Tags).Distinct().ToArray()
+        var mergedTags = policy.Tags.Length > 0
+            ? tags.Concat(policy.Tags).Distinct().ToArray()
             : tags.ToArray();
 
-        // FIX: cacheable.DurationSeconds is an int. Previously code used .Value which caused compilation errors.
-        var absolute = cacheable != null
-            ? TimeSpan.FromSeconds(cacheable.DurationSeconds)
+        var absolute = policy.DurationSeconds > 0
+            ? TimeSpan.FromSeconds(policy.DurationSeconds)
             : _defaults.AbsoluteExpirationRelativeToNow;
 
         return new CacheEntryOptions
@@ -131,4 +156,6 @@ public class CachedReadRepository<TEntity, TKey>
             Tags = mergedTags
         };
     }
+
+    private sealed record CachePolicy(bool Enabled, string KeyTemplate, int DurationSeconds, string[] Tags);
 }

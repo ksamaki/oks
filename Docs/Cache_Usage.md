@@ -2,57 +2,95 @@
 
 [Cache - Description](Cache_Description.md) | [Ana sayfa](../README.md)
 
-Cache özelliğini projene eklemek için aşağıdaki adımları uygulayabilirsin.
-
-## 1) Proje referansları (`.csproj`)
+## 1) Proje referansları
 ```xml
 <ItemGroup>
-  <ProjectReference Include="..\src\Oks\Oks.Domain\Oks.Domain.csproj" />
-  <ProjectReference Include="..\src\Oks\Oks.Shared\Oks.Shared.csproj" />
-  <ProjectReference Include="..\src\Oks\Oks.Persistence.EfCore\Oks.Persistence.EfCore.csproj" />
   <ProjectReference Include="..\src\Oks\Oks.Caching.Abstractions\Oks.Caching.Abstractions.csproj" />
   <ProjectReference Include="..\src\Oks\Oks.Caching\Oks.Caching.csproj" />
-  <ProjectReference Include="..\src\Oks\Oks.Web.Abstractions\Oks.Web.Abstractions.csproj" />
   <ProjectReference Include="..\src\Oks\Oks.Web\Oks.Web.csproj" />
 </ItemGroup>
 ```
 
-> `Oks.Caching.Redis` isminde ayrı bir proje/paket yoktur. Dağıtık cache için uygulama tarafında standart `IDistributedCache` sağlayıcısını (ör. `AddStackExchangeRedisCache`) kaydetmen yeterlidir.
-
-## 2) Namespace'ler
+## 2) DI kayıtları
 ```csharp
 using Oks.Caching.Extensions;
-using Oks.Persistence.EfCore;
+using Oks.Web.Extensions;
+
+builder.Services.AddOksCaching(options =>
+{
+    options.UseDistributedCache(services =>
+    {
+        // örnek: Redis
+        services.AddStackExchangeRedisCache(redis =>
+        {
+            redis.Configuration = builder.Configuration.GetConnectionString("Redis");
+            redis.InstanceName = "oks:";
+        });
+    });
+
+    // hazır kısa yol
+    // options.UseRedis(builder.Configuration.GetConnectionString("Redis")!);
+
+    options.AddReadRepositoryCaching();
+    options.CacheOnlyRepositoryListQueries(); // varsayılan
+});
+
+builder.Services.AddControllers()
+    .AddOksCustomCaching();
+
+builder.Services.AddOksCustomCaching(); // Minimal API filter servisi
 ```
 
-`AddOksCaching(...)`, `UseDistributedCache()` ve `AddReadRepositoryCaching()` extension method'ları `Oks.Caching.Extensions` namespace'i altındadır.
-
-(...content unchanged until Redis provider section...)
-
-## 6) Redis / IDistributedCache provider'ını etkinleştirme
+## 3) Entity bazlı otomatik cache
 ```csharp
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "oks:";
-});
+using Oks.Caching.Abstractions;
 
-builder.Services.AddOksCaching(caching =>
+[Cacheable(DurationSeconds = 180, Tags = ["product"])]
+public class Product : AuditedEntity<Guid>
 {
-    caching.UseDistributedCache(); // Redis için IDistributedCache kullan
-    caching.AddReadRepositoryCaching();
-});
+}
 ```
 
-Alternatif olarak varsayılan memory cache davranışı için sadece aşağıdaki kayıt yeterlidir:
+Bu durumda `IReadRepository<Product, Guid>` query çağrıları otomatik cache'lenir, `IWriteRepository<Product, Guid>` command çağrılarında ilgili tag/key grupları otomatik temizlenir.
 
+## 4) Action/endpoint bazlı özel cache
 ```csharp
-builder.Services.AddOksCaching(caching =>
-{
-    caching.AddReadRepositoryCaching();
-});
+[CustomCache(DurationSeconds = 60, Tags = ["catalog"])]
+[HttpGet("catalog")]
+public async Task<IActionResult> GetCatalog() => Ok(await _service.GetCatalogAsync());
+
+[CustomCache(Evict = true, Tags = ["catalog"])]
+[HttpPost("catalog/rebuild")]
+public async Task<IActionResult> RebuildCatalog() => Ok(await _service.RebuildAsync());
 ```
 
-> NOTE: Mevcut implementasyonda tag-index (`ICacheTagIndex`) varsayılan olarak `InMemoryCacheTagIndex`'dir. Dağıtık/çoklu node (Redis) senaryolarında tag-index'in merkezi (örn. Redis setleri) bir implementasyonu gereklidir. `InMemoryCacheTagIndex` yalnızca tek-node veya test senaryoları içindir.
+## 5) Minimal API ile kullanım
+```csharp
+var api = app.MapGroup("/api").AddOksCustomCaching();
 
-(...rest unchanged...)
+api.MapGet("/products", [CustomCache(DurationSeconds = 45, Tags = ["product:list"])]
+    async (IProductQueryService svc) => await svc.GetAsync());
+```
+
+## 6) Elle cache yönetimi
+```csharp
+public class PriceService(ICacheManager cacheManager)
+{
+    public Task<decimal> GetPriceAsync(Guid id, CancellationToken ct)
+        => cacheManager.GetOrSetAsync($"price:{id}", () => LoadFromSource(id, ct),
+            new CacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
+                Tags = ["price"]
+            }, ct);
+
+    public Task ClearAsync(Guid id, CancellationToken ct)
+        => cacheManager.RemoveAsync($"price:{id}", ct);
+}
+```
+
+
+## 7) DTO -> Entity otomatik etiket eşleme
+`[CustomCache]` içinde tag verilmezse framework, action/endpoint argüman ve dönüş tiplerinden
+konvansiyonel entity adı üretir (`ProductQuery`, `ProductDto`, `ProductResponse` -> `Product`).
+Böylece query/command tarafında dolma/yırtma tagleri otomatik üretilebilir.

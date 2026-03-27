@@ -7,7 +7,6 @@
   <Project Path="Oks.Caching.Abstractions/Oks.Caching.Abstractions.csproj" Id="449b60a5-3ab1-4592-84d8-0437f2cc8dd1" />
   <Project Path="Oks.Caching/Oks.Caching.csproj" Id="a1ed462d-bc9a-48bb-be88-78113ae96f5f" />
   <Project Path="Oks.RealTime.SignalR/Oks.RealTime.SignalR.csproj" />
-  <Project Path="Oks.Location.Redis/Oks.Location.Redis.csproj" />
   <Project Path="Oks.Persistence.Abstractions/Oks.Persistence.Abstractions.csproj" Id="cd7b07dd-6129-4412-b2a8-845d801af6f1" />
   <Project Path="Oks.Persistence.EfCore/Oks.Persistence.EfCore.csproj" Id="b42b3a0f-1851-4770-9f53-65a0ba7f2540" />
   <Project Path="Oks.Shared/Oks.Shared.csproj" Id="94aa2f58-e1ca-4efc-a681-baf4c9464ccd" />
