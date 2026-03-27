@@ -58,6 +58,7 @@ public class CachingTests
         {
             o.DefaultEntryOptions.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
             o.DefaultEntryOptions.SoftExpiration = TimeSpan.FromSeconds(5);
+            o.CacheAllRepositoryQueries();
         });
 
         await using var provider = services.BuildServiceProvider();
@@ -98,7 +99,7 @@ public class CachingTests
         var services = new ServiceCollection();
         services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddOksEfCore<TestDbContext>();
-        services.AddOksCaching();
+        services.AddOksCaching(o => o.CacheAllRepositoryQueries());
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -134,7 +135,7 @@ public class CachingTests
         var services = new ServiceCollection();
         services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddOksEfCore<TestDbContext>();
-        services.AddOksCachingWithRepositories();
+        services.AddOksCachingWithRepositories(o => o.CacheAllRepositoryQueries());
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();

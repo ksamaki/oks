@@ -8,6 +8,10 @@ public class OksCachingOptions
 
     public bool RepositoryCachingEnabled { get; set; } = true;
 
+    public RedisCacheOptions Redis { get; set; } = new();
+
+    public RepositoryQueryCacheScope RepositoryQueryCacheScope { get; set; } = RepositoryQueryCacheScope.ListOnly;
+
     public CacheEntryOptions DefaultEntryOptions { get; set; } = new()
     {
         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),

@@ -18,4 +18,7 @@ public static class OksMinimalApiRouteGroupBuilderExtensions
 
     public static RouteGroupBuilder AddOksPerformance(this RouteGroupBuilder routeGroupBuilder)
         => routeGroupBuilder.AddEndpointFilter<OksMinimalApiPerformanceFilter>();
+
+    public static RouteGroupBuilder AddOksCustomCaching(this RouteGroupBuilder routeGroupBuilder)
+        => routeGroupBuilder.AddEndpointFilter<OksMinimalApiCustomCacheFilter>();
 }
