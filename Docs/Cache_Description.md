@@ -2,76 +2,39 @@
 
 [Cache - Usage](Cache_Usage.md) | [Ana sayfa](../README.md)
 
-OKS cache paketi; okuma trafiğini otomatik cache'leyip yazma tarafında tag/pattern tabanlı yırtmayı yöneten, attribute tabanlı ve genişletilebilir bir mekanizma sunar. Paket referans edilmediği sürece devre dışı kalır; eklendiğinde MVC filtreleri, repository dekoratörleri ve MediatR pipeline'ı ile minimum kodla devreye girer.
+`Oks.Caching`, artık framework genelinde kullanılabilen tekil bir cache altyapısıdır. Redis sadece belirli bir domain'in parçası değil; tüm framework modülleri ve framework tüketen uygulamalar için yeniden kullanılabilir bir bileşen olarak konumlandırılmıştır.
 
-## Tasarım hedefleri
-- **Opsiyonel NuGet paketi**: Sadece `Oks.Caching*` paketleri eklendiğinde çalışır.
-- **Attribute ile self-service**: `[Cacheable]` ve `[CacheEvict]` ile controller, minimal API ya da handler seviyesinde cache yönetimi.
-- **Read/Write ayrımı**: Read repository dekoratörü cache'ler; Write tarafı entity tag'lerini yırtar.
-- **Sağlam cache anahtarları**: Tekil, liste ve sayfalı sorgular için deterministik key + isteğe bağlı tenant/kullanıcı segmentleri.
-- **Provider bağımsız**: `IMemoryCache` ve `IDistributedCache` (Redis) adaptörleri; ileride başka sağlayıcılarla genişleyebilir.
-- **TTL ve stampede kontrolü**: Absolute/sliding expiration, soft-TTL + single-flight ile güvenli eşzamanlı erişim.
-- **Gözlemlenebilirlik**: Hit/miss, set/remove olayları için log ve metrik hook noktaları.
+## Temel hedef
+- Varsayılan olarak **pasif** kalır, sadece attribute ile işaretlenen alanlarda çalışır.
+- Entity seviyesinde `[Cacheable]` ile query tarafında otomatik `GetOrSet` çalışır.
+- Command tarafında aynı entity için cache otomatik temizlenir (yırtılır).
+- Ek iş akışları için method/action/class seviyesinde `[CustomCache]` ile davranış özelleştirilebilir.
+- Minimal API ve MVC senaryolarında aynı yaklaşım desteklenir.
 
-> NOTE: Bazı ileri seviye özellikler (ör. Single-flight timeout, background refresh / refreshAheadSeconds) tasarımda belirtilmiştir ancak bu PR'ın kod içeriğinde tam olarak implement edilmemiştir. Bu özellikler ilerleyen PR'larda eklenecektir.
+## Bileşenler
+- `Oks.Caching.Abstractions`
+  - `ICacheService`, `ICacheManager`
+  - `CacheKey`, `CacheEntryOptions`
+  - `[Cacheable]`, `[CacheEvict]`, `[CustomCache]`
+- `Oks.Caching`
+  - `CacheService` (Memory + Distributed)
+  - `CacheManager` (elle cache yönetimi)
+  - Repository dekoratörleri (`CachedReadRepository`, `CacheEvictingWriteRepository`)
+  - Redis bağlantısı için `UseRedis(...)`
+- `Oks.Web`
+  - MVC: `OksCustomCacheFilter`
+  - Minimal API: `OksMinimalApiCustomCacheFilter`
 
-## Paketleme
-```
-Oks.Caching.Abstractions
-  - ICacheService (GetAsync/SetAsync/RemoveAsync/GetOrAddAsync)
-  - CacheEntryOptions (TTL, sliding, priority, tags)
-  - CacheKey (segment tabanlı, hashing destekli)
-  - Attributes: [Cacheable], [CacheEvict]
+## Çalışma modeli
+1. `AddOksCaching(...)` ile altyapı eklenir.
+2. Entity üzerinde `[Cacheable]` varsa repository query'leri cache'e alınır.
+3. Aynı entity üzerinde write olduğunda entity tag'leri otomatik temizlenir.
+4. Endpoint/action seviyesinde `[CustomCache]` varsa response cache veya explicit evict uygulanır.
+5. Elle kullanımda `ICacheManager` ile key/tag bazlı set/get/remove yapılabilir.
 
-Oks.Caching (çekirdek)
-  - CacheService (IMemoryCache & IDistributedCache implementasyonu)
-  - ICacheSerializer (System.Text.Json tabanlı varsayılan)
-  - ICacheKeyBuilder
-  - Decorators: ReadRepositoryCacheDecorator, UnitOfWorkCacheEvictDecorator
-  - Filters: CacheableActionFilter, CacheEvictActionFilter (MVC & Minimal API)
-```
-
-> Dağıtık cache desteği için ayrı bir `Oks.Caching.Redis` paketi gerekmez. Uygulama tarafında standart `IDistributedCache` implementasyonunu (`AddStackExchangeRedisCache`, SQL distributed cache vb.) kaydetmek ve ardından `AddOksCaching(caching => caching.UseDistributedCache())` çağırmak yeterlidir.
-
-## Kısa kullanım özeti
-```csharp
-using Oks.Caching.Extensions;
-
-builder.Services.AddOksCaching(caching =>
-{
-    caching.UseDistributedCache();
-    caching.AddReadRepositoryCaching();
-});
-```
-
-Memory cache ile devam etmek istersen `UseDistributedCache()` çağrısını yapmadan sadece `AddOksCaching(...)` kullanabilirsin.
-
-## Mimari akış
-1. `[Cacheable]` attribute veya Read repository dekoratörü, `ICacheService.GetOrAddAsync` ile cache kontrolü yapar.
-2. Cache anahtarı; rota parametreleri, sorgu parametreleri, tenant/kullanıcı bilgisi gibi segmentlerden `ICacheKeyBuilder` ile deterministik üretilir.
-3. Write repository, domain event handler veya `[CacheEvict]` attribute ile etkilenen entity tag'leri (`Entity`, `Entity:Id`, `Query:Entity`) temizlenir.
-4. Soft-TTL ve single-flight kilidiyle aynı anda gelen yoğun okuma isteklerinde stampede önlenir.
-
-## Önerilen API yüzeyi
-```csharp
-public interface ICacheService
-{
-    Task<T?> GetAsync<T>(CacheKey key, CancellationToken ct = default);
-    Task SetAsync<T>(CacheKey key, T value, CacheEntryOptions? options = null, CancellationToken ct = default);
-    Task RemoveAsync(CacheKey key, CancellationToken ct = default);
-    Task RemoveByTagAsync(string tag, CancellationToken ct = default);
-    Task<T> GetOrAddAsync<T>(CacheKey key, Func<Task<T>> factory, CacheEntryOptions? options = null, CancellationToken ct = default);
-}
-```
-
-(...content continues unchanged...)
-
-(Additionally added a short note near key/hash rules):
-
-## Cache key üretim kuralları
-- Segment bazlı: `oks:{area}:{resource}:{paramsHash}`.
-- `paramsHash`: sorgu parametreleri deterministik sırayla JSON serialize edilip SHA256 hash alınır.
-
-> NOTE: CacheKey.Hash serileştirmesinde kullanılan Json seçeneklerinin (PropertyNamingPolicy vb.) DefaultCacheSerializer ile tutarlı olması önemlidir; aksi takdirde farklı serileştirme ayarları farklı hashler üretebilir. İlerleyen PR'larda bu seçeneklerin paylaşılan bir Json konfigürasyonuna taşınması önerilmektedir.
-
-(...rest of document unchanged...)
+## Güvenlik ve performans
+- Varsayılan davranış tüm endpointleri cache'lemek değildir.
+- Soft TTL + single-flight ile stampede riski azaltılır.
+- Memory veya distributed provider seçimi opsiyoneldir.
+- Distributed provider tarafı extensible'dır: özel provider DI kaydı verilebilir, Redis ise `UseRedis(...)` ile hazır profil olarak kullanılabilir.
+- Repository query cache kapsamı varsayılan olarak sadece liste sorgularıdır (`ListOnly`), istenirse `CacheAllRepositoryQueries()` ile genişletilebilir.

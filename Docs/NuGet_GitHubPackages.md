@@ -19,7 +19,6 @@ The solution under `src/Oks/Oks.slnx` contains multiple packable class library p
 - `Oks.Web.Validation`
 - `Oks.Web`
 - `Oks.RealTime.SignalR`
-- `Oks.Location.Redis`
 
 All library projects are configured to produce NuGet packages with a shared version, author, repository URL, symbols package, and README file.
 

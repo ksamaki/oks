@@ -20,6 +20,7 @@
 
 
   <ItemGroup>
+    <ProjectReference Include="..\Oks.Caching.Abstractions\Oks.Caching.Abstractions.csproj" />
     <ProjectReference Include="..\Oks.Logging.Abstractions\Oks.Logging.Abstractions.csproj" />
     <ProjectReference Include="..\Oks.Logging\Oks.Logging.csproj" />
     <ProjectReference Include="..\Oks.Persistence.Abstractions\Oks.Persistence.Abstractions.csproj" />

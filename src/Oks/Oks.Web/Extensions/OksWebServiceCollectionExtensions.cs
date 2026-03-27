@@ -104,6 +104,19 @@ public static class OksWebServiceCollectionExtensions
         return mvcBuilder;
     }
 
+
+    public static IMvcBuilder AddOksCustomCaching(this IMvcBuilder mvcBuilder)
+    {
+        mvcBuilder.Services.AddScoped<OksCustomCacheFilter>();
+
+        mvcBuilder.AddMvcOptions(options =>
+        {
+            options.Filters.AddService<OksCustomCacheFilter>();
+        });
+
+        return mvcBuilder;
+    }
+
     /// <summary>
     /// HTTP isteklerinin OksLogRequest tablosuna loglanması için gerekli middleware'i DI'a ekler.
     /// </summary>
@@ -128,6 +141,13 @@ public static class OksWebServiceCollectionExtensions
             services.Configure<OksRateLimitOptions>(_ => { });
 
         services.AddScoped<OksMinimalApiRateLimitFilter>();
+        return services;
+    }
+
+    public static IServiceCollection AddOksCustomCaching(this IServiceCollection services)
+    {
+        services.AddScoped<OksMinimalApiCustomCacheFilter>();
+        services.AddScoped<OksCustomCacheFilter>();
         return services;
     }
 
