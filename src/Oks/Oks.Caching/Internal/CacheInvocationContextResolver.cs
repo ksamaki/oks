@@ -7,12 +7,12 @@ namespace Oks.Caching.Internal;
 internal static class CacheInvocationContextResolver
 {
     public static CacheableAttribute? ResolveCacheable<TMarker>()
-        => ResolveFromStack<TMarker>(method =>
+        => ResolveFromStack<TMarker, CacheableAttribute>(method =>
             method.GetCustomAttribute<CacheableAttribute>(true)
             ?? method.DeclaringType?.GetCustomAttribute<CacheableAttribute>(true));
 
     public static CustomCacheAttribute? ResolveCustomCache<TMarker>()
-        => ResolveFromStack<TMarker>(method =>
+        => ResolveFromStack<TMarker, CustomCacheAttribute>(method =>
             method.GetCustomAttribute<CustomCacheAttribute>(true)
             ?? method.DeclaringType?.GetCustomAttribute<CustomCacheAttribute>(true));
 
