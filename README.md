@@ -14,7 +14,9 @@ Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal d
 - **Logging (Request, Exception, Performance, RateLimit, Repository, Audit, Custom)**: [Logging_Description.md](Docs/Logging_Description.md)
 - **Validation (FluentValidation)**: [Validation_Description.md](Docs/Validation_Description.md)
 - **Cache (Read cache + Write eviction)**: [Cache_Description.md](Docs/Cache_Description.md)
+- **Redis (Oks.Caching distributed provider profili)**: [Redis_Description.md](Docs/Redis_Description.md)
 - **Real-Time (SignalR + JWT connection contracts)**: [RealTimeSignalR_Description.md](Docs/RealTimeSignalR_Description.md)
+- **Authentication (JWT default + optional OpenIddict + EF Core persistence)**: [Authentication_Description.md](Docs/Authentication_Description.md)
 
 Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
