@@ -38,3 +38,5 @@
 - Memory veya distributed provider seçimi opsiyoneldir.
 - Distributed provider tarafı extensible'dır: özel provider DI kaydı verilebilir, Redis ise `UseRedis(...)` ile hazır profil olarak kullanılabilir.
 - Repository query cache kapsamı varsayılan olarak sadece liste sorgularıdır (`ListOnly`), istenirse `CacheAllRepositoryQueries()` ile genişletilebilir.
+
+Redis odaklı ayrı doküman: [Redis_Description.md](Redis_Description.md)

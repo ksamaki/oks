@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Oks.Authentication.OpenIddict</PackageId>
+    <Description>Optional OpenIddict integration module for Oks Authentication.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Oks.Authentication.Abstractions\Oks.Authentication.Abstractions.csproj" />
+    <ProjectReference Include="..\Oks.Authentication.Core\Oks.Authentication.Core.csproj" />
+  </ItemGroup>
+</Project>

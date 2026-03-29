@@ -1,6 +1,12 @@
 <Solution>
   <Project Path="../../tests/Oks/Oks.Tests/Oks.Tests.csproj" Id="2770d2e8-6d8c-4d69-8e5a-99e8759019a1" />
   <Project Path="Oks.Domain/Oks.Domain.csproj" />
+  <Project Path="Oks.Authentication.Abstractions/Oks.Authentication.Abstractions.csproj" />
+  <Project Path="Oks.Authentication.Core/Oks.Authentication.Core.csproj" />
+  <Project Path="Oks.Authentication.Jwt/Oks.Authentication.Jwt.csproj" />
+  <Project Path="Oks.Authentication.EntityFrameworkCore/Oks.Authentication.EntityFrameworkCore.csproj" />
+  <Project Path="Oks.Authentication.AspNetCore/Oks.Authentication.AspNetCore.csproj" />
+  <Project Path="Oks.Authentication.OpenIddict/Oks.Authentication.OpenIddict.csproj" />
   <Project Path="Oks.Logging.Abstractions/Oks.Logging.Abstractions.csproj" Id="65d966ed-4f4a-4253-ad71-732dd8c4978e" />
   <Project Path="Oks.Logging.EfCore/Oks.Logging.EfCore.csproj" Id="a95fc717-9afc-4460-97c3-26f01dd221fd" />
   <Project Path="Oks.Logging/Oks.Logging.csproj" Id="f39065fc-70d1-48da-9599-0bed5b5f10a4" />
