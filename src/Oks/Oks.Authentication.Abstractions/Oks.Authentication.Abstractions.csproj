@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Oks.Authentication.Abstractions</PackageId>
+    <Description>Authentication contracts and DTOs for Oks Authentication modules.</Description>
+  </PropertyGroup>
+</Project>
