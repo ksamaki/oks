@@ -3,7 +3,7 @@ using Oks.Caching.Abstractions;
 
 namespace Oks.Web.Filters;
 
-internal sealed class OksQueryCacheExecutor(ICacheService cacheService, ICacheKeyGenerator keyGenerator, Oks.Caching.OksCachingOptions options)
+internal sealed class OksQueryCacheExecutor(ICacheService cacheService, ICacheKeyGenerator keyGenerator, OksCachingOptions options)
 {
     public async Task<object?> ExecuteAsync(
         MethodInfo method,

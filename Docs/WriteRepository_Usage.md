@@ -20,6 +20,8 @@ Aşağıdaki adımları kopyalayarak yazma repository katmanını transaction fi
 Audit için `OksDbContextBase` kullanılır; kullanıcı bilgisi `IOksUserProvider` üzerinden alınır.
 
 ## 3) DI ve pipeline kurulumu
+> Not: `Oks.Web` abstraction-only kuralı nedeniyle `AddOksUnitOfWork()` tek başına persistence concrete implementasyonu eklemez. Örnekteki `AddOksEfCore<AppDbContext>()` (veya alternatif persistence kaydı) zorunludur.
+
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Oks.Persistence.EfCore.Extensions;
