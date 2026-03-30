@@ -34,7 +34,7 @@ public class CachingTests
             new MemoryCache(new MemoryCacheOptions()),
             distributedCache: null,
             new DefaultCacheSerializer(),
-            new InMemoryCacheTagIndex(),
+            new InMemoryCacheDependencyManager(),
             Options.Create(new OksCachingOptions()));
 
         var key = new CacheKey(new[] { "oks", "cache", "user", "1" });
@@ -93,8 +93,7 @@ public class CachingTests
     }
 
     [Fact]
-    [Cacheable(KeyTemplate= "tests:user:{id}", DurationSeconds= 30, Tags = new[] { "feature" })]
-    public async Task CacheableAttribute_Should_Influence_Cache()
+    public async Task EntityCacheAttribute_Should_Influence_Cache()
     {
         var services = new ServiceCollection();
         services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
@@ -108,7 +107,7 @@ public class CachingTests
         var writeRepo = sp.GetRequiredService<IWriteRepository<TestUser, int>>();
         var readRepo = sp.GetRequiredService<IReadRepository<TestUser, int>>();
         var uow = sp.GetRequiredService<IUnitOfWork>();
-        var tags = sp.GetRequiredService<ICacheTagIndex>();
+        var tags = sp.GetRequiredService<ICacheDependencyManager>();
 
         await writeRepo.AddAsync(new TestUser { Name = "Initial" });
         await uow.SaveChangesAsync();
@@ -116,21 +115,19 @@ public class CachingTests
         var cached = await readRepo.GetByIdAsync(1);
         cached.Should().NotBeNull();
 
-        tags.KeysFor("feature").Should().NotBeEmpty();
-        tags.KeysFor(nameof(TestUser)).Should().NotBeEmpty();
+        (await tags.ResolveKeysAsync("test-user")).Should().NotBeEmpty();
+        (await tags.ResolveKeysAsync(nameof(TestUser))).Should().NotBeEmpty();
 
         cached!.Name = "Changed";
         writeRepo.Update(cached);
         await uow.SaveChangesAsync();
 
-        tags.KeysFor("feature").Should().BeEmpty();
-        tags.KeysFor(nameof(TestUser)).Should().BeEmpty();
+        (await tags.ResolveKeysAsync("test-user")).Should().BeEmpty();
+        (await tags.ResolveKeysAsync(nameof(TestUser))).Should().BeEmpty();
     }
 
     [Fact]
-    [Cacheable(DurationSeconds = 60, Tags = new[] { "flush" })]
-    [CacheEvict(Tags = new[] { "flush" }, EvictAllEntityCache = true)]
-    public async Task CacheEvictAttribute_Should_Remove_Custom_Tags()
+    public async Task Write_Should_Invalidate_Entity_Tags()
     {
         var services = new ServiceCollection();
         services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
@@ -144,7 +141,7 @@ public class CachingTests
         var writeRepo = sp.GetRequiredService<IWriteRepository<TestUser, int>>();
         var readRepo = sp.GetRequiredService<IReadRepository<TestUser, int>>();
         var uow = sp.GetRequiredService<IUnitOfWork>();
-        var tags = sp.GetRequiredService<ICacheTagIndex>();
+        var tags = sp.GetRequiredService<ICacheDependencyManager>();
 
         await writeRepo.AddAsync(new TestUser { Name = "Initial" });
         await uow.SaveChangesAsync();
@@ -152,13 +149,10 @@ public class CachingTests
         var cached = await readRepo.GetByIdAsync(1);
         cached.Should().NotBeNull();
 
-        tags.KeysFor("flush").Should().NotBeEmpty();
-
-        cached!.Name = "Changed";
+                cached!.Name = "Changed";
         writeRepo.Update(cached);
         await uow.SaveChangesAsync();
 
-        tags.KeysFor("flush").Should().BeEmpty();
-        tags.KeysFor(nameof(TestUser)).Should().BeEmpty();
+                (await tags.ResolveKeysAsync(nameof(TestUser))).Should().BeEmpty();
     }
 }

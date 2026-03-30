@@ -5,6 +5,7 @@ using Oks.Caching.Abstractions;
 using Oks.Caching.Repositories;
 using Oks.Caching.Tags;
 using Oks.Persistence.Abstractions.Repositories;
+using StackExchange.Redis;
 
 namespace Oks.Caching.Extensions;
 
@@ -17,6 +18,9 @@ public static class OksCachingServiceCollectionExtensions
         services.AddMemoryCache();
         services.TryAddSingleton<ICacheSerializer, DefaultCacheSerializer>();
         services.TryAddSingleton<ICacheKeyBuilder, CacheKeyBuilder>();
+        services.TryAddSingleton<ICacheKeyGenerator, TemplateCacheKeyGenerator>();
+        services.TryAddSingleton<InMemoryCacheDependencyManager>();
+        services.TryAddSingleton<ICacheDependencyManager>(sp => sp.GetRequiredService<InMemoryCacheDependencyManager>());
         services.TryAddSingleton<ICacheTagIndex, InMemoryCacheTagIndex>();
         services.TryAddSingleton<ICacheService, CacheService>();
         services.TryAddSingleton<ICacheManager, CacheManager>();
@@ -72,6 +76,12 @@ public static class OksCachingServiceCollectionExtensions
     {
         if (options.Provider != CacheProvider.Distributed)
             return;
+
+        if (options.Redis.Enabled)
+        {
+            services.TryAddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(options.Redis.Configuration));
+            services.Replace(ServiceDescriptor.Singleton<ICacheDependencyManager, RedisCacheDependencyManager>());
+        }
 
         if (options.Redis.ConfigureServices is not null)
         {

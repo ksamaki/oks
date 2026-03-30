@@ -1,101 +1,46 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
+using Oks.Caching;
 using Oks.Caching.Abstractions;
 
 namespace Oks.Web.Filters;
 
 public sealed class OksCustomCacheFilter(
     ICacheService cacheService,
-    ICacheKeyBuilder keyBuilder,
-    ICacheEntityNameResolver entityNameResolver) : IAsyncActionFilter
+    ICacheKeyGenerator keyGenerator,
+    IOptions<OksCachingOptions> options) : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        var attribute = ResolveAttribute(context);
-        if (attribute is null)
+        if (context.ActionDescriptor is not ControllerActionDescriptor descriptor)
         {
             await next();
             return;
         }
 
-        var key = ResolveKey(context, attribute);
-        var tags = ResolveTags(attribute, context);
+        ValidateUsage(descriptor.MethodInfo);
 
-        if (attribute.Evict || !HttpMethods.IsGet(context.HttpContext.Request.Method))
-        {
-            await EvictAsync(tags, key, context.HttpContext.RequestAborted);
-            await next();
-            return;
-        }
+        var executor = new OksQueryCacheExecutor(cacheService, keyGenerator, options.Value);
+        var arguments = context.ActionArguments.ToDictionary(x => x.Key, x => x.Value);
+        var result = await executor.ExecuteAsync(
+            descriptor.MethodInfo,
+            arguments,
+            async () =>
+            {
+                var executed = await next();
+                return (executed.Result as ObjectResult)?.Value;
+            },
+            context.HttpContext.RequestAborted);
 
-        var cached = await cacheService.GetAsync<object>(key, context.HttpContext.RequestAborted);
-        if (cached is not null)
-        {
-            context.Result = new ObjectResult(cached);
-            return;
-        }
-
-        var executedContext = await next();
-        if (executedContext.Result is not ObjectResult objectResult)
-            return;
-
-        var options = new CacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(attribute.DurationSeconds),
-            Tags = tags
-        };
-
-        await cacheService.SetAsync(key, objectResult.Value, options, context.HttpContext.RequestAborted);
+        if (descriptor.MethodInfo.GetCustomAttributes(typeof(OksCacheAttribute), true).Length > 0)
+            context.Result = new ObjectResult(result);
     }
 
-    private static CustomCacheAttribute? ResolveAttribute(ActionExecutingContext context)
-        => context.ActionDescriptor.EndpointMetadata.OfType<CustomCacheAttribute>().FirstOrDefault();
-
-    private string[] ResolveTags(CustomCacheAttribute attribute, ActionExecutingContext context)
+    private static void ValidateUsage(System.Reflection.MethodInfo method)
     {
-        if (attribute.Tags.Length > 0)
-            return attribute.Tags;
-
-        var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var argument in context.ActionArguments.Values.Where(v => v is not null))
-        {
-            foreach (var entityName in entityNameResolver.ResolveFromType(argument!.GetType()))
-                tags.Add(entityName);
-        }
-
-        if (context.ActionDescriptor is ControllerActionDescriptor actionDescriptor)
-        {
-            foreach (var entityName in entityNameResolver.ResolveFromType(actionDescriptor.MethodInfo.ReturnType))
-                tags.Add(entityName);
-        }
-
-        return tags.ToArray();
-    }
-
-    private CacheKey ResolveKey(ActionExecutingContext context, CustomCacheAttribute attribute)
-    {
-        if (!string.IsNullOrWhiteSpace(attribute.KeyTemplate))
-            return keyBuilder.FromTemplate(attribute.KeyTemplate, context.ActionArguments);
-
-        return new CacheKey(new[]
-        {
-            "http",
-            context.HttpContext.Request.Method,
-            context.HttpContext.Request.Path.Value ?? "/",
-            context.HttpContext.Request.QueryString.Value ?? string.Empty
-        });
-    }
-
-    private async Task EvictAsync(IEnumerable<string> tags, CacheKey key, CancellationToken cancellationToken)
-    {
-        await cacheService.RemoveAsync(key, cancellationToken);
-
-        foreach (var tag in tags)
-        {
-            await cacheService.RemoveByTagAsync(tag, cancellationToken);
-        }
+        if (method.GetCustomAttributes(typeof(OksEntityCacheAttribute), true).Length > 0)
+            throw new InvalidOperationException($"[OksEntityCache] sadece entity class seviyesinde kullanılabilir: {method.DeclaringType?.FullName}.{method.Name}");
     }
 }

@@ -1,90 +1,36 @@
 using System.Reflection;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
+using Oks.Caching;
 using Oks.Caching.Abstractions;
 
 namespace Oks.Web.Filters;
 
 public sealed class OksMinimalApiCustomCacheFilter(
     ICacheService cacheService,
-    ICacheKeyBuilder keyBuilder,
-    ICacheEntityNameResolver entityNameResolver) : IEndpointFilter
+    ICacheKeyGenerator keyGenerator,
+    IOptions<OksCachingOptions> options) : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var endpoint = context.HttpContext.GetEndpoint();
-        var attribute = endpoint?.Metadata.GetMetadata<CustomCacheAttribute>();
-        if (attribute is null)
+        var method = endpoint?.Metadata.GetMetadata<MethodInfo>();
+        if (method is null)
             return await next(context);
 
-        var key = ResolveKey(context, attribute);
-        var tags = ResolveTags(attribute, context, endpoint);
+        ValidateUsage(method);
 
-        if (attribute.Evict || !HttpMethods.IsGet(context.HttpContext.Request.Method))
-        {
-            await EvictAsync(tags, key, context.HttpContext.RequestAborted);
-            return await next(context);
-        }
+        var parameters = method.GetParameters();
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < parameters.Length && i < context.Arguments.Count; i++)
+            args[parameters[i].Name ?? $"arg{i}"] = context.Arguments[i];
 
-        var cached = await cacheService.GetAsync<object>(key, context.HttpContext.RequestAborted);
-        if (cached is not null)
-            return cached;
-
-        var result = await next(context);
-
-        var options = new CacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(attribute.DurationSeconds),
-            Tags = tags
-        };
-
-        await cacheService.SetAsync(key, result, options, context.HttpContext.RequestAborted);
-        return result;
+        var executor = new OksQueryCacheExecutor(cacheService, keyGenerator, options.Value);
+        return await executor.ExecuteAsync(method, args, () => next(context).AsTask(), context.HttpContext.RequestAborted);
     }
 
-    private string[] ResolveTags(CustomCacheAttribute attribute, EndpointFilterInvocationContext context, Endpoint? endpoint)
+    private static void ValidateUsage(MethodInfo method)
     {
-        if (attribute.Tags.Length > 0)
-            return attribute.Tags;
-
-        var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var argument in context.Arguments.Where(a => a is not null))
-        {
-            foreach (var entityName in entityNameResolver.ResolveFromType(argument!.GetType()))
-                tags.Add(entityName);
-        }
-
-        var methodInfo = endpoint?.Metadata.GetMetadata<MethodInfo>();
-        if (methodInfo is not null)
-        {
-            foreach (var entityName in entityNameResolver.ResolveFromType(methodInfo.ReturnType))
-                tags.Add(entityName);
-        }
-
-        return tags.ToArray();
-    }
-
-    private CacheKey ResolveKey(EndpointFilterInvocationContext context, CustomCacheAttribute attribute)
-    {
-        if (!string.IsNullOrWhiteSpace(attribute.KeyTemplate))
-            return keyBuilder.FromTemplate(attribute.KeyTemplate, context.Arguments);
-
-        return new CacheKey(new[]
-        {
-            "http",
-            context.HttpContext.Request.Method,
-            context.HttpContext.Request.Path.Value ?? "/",
-            context.HttpContext.Request.QueryString.Value ?? string.Empty
-        });
-    }
-
-    private async Task EvictAsync(IEnumerable<string> tags, CacheKey key, CancellationToken cancellationToken)
-    {
-        await cacheService.RemoveAsync(key, cancellationToken);
-
-        foreach (var tag in tags)
-        {
-            await cacheService.RemoveByTagAsync(tag, cancellationToken);
-        }
+        if (method.GetCustomAttributes(typeof(OksEntityCacheAttribute), true).Length > 0)
+            throw new InvalidOperationException($"[OksEntityCache] sadece entity class seviyesinde kullanılabilir: {method.DeclaringType?.FullName}.{method.Name}");
     }
 }
