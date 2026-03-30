@@ -39,3 +39,9 @@ Bu metadata'lar MVC action/controller üzerinde attribute olarak, Minimal API ta
 ## Usage
 
 Kurulum ve örnekler için: [Logging_Usage.md](Logging_Usage.md)
+
+
+## Mimari not (ADR-2026-03-30)
+- `Oks.Web` yalnızca `Oks.Logging.Abstractions` kontratlarına bağlıdır.
+- `IOksLogWriter` concrete implementasyonu (örn. EF Core writer) host/integration katmanında ayrıca register edilmelidir.
+- Bu nedenle `AddOksRequestLogging()`/`UseOksRequestLogging()` çağrıları korunur; ancak writer kaydı yapılmamışsa runtime DI hatası alınır.

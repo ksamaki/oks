@@ -18,11 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Oks.Caching.Abstractions\Oks.Caching.Abstractions.csproj" />
-    <ProjectReference Include="..\Oks.Caching\Oks.Caching.csproj" />
     <ProjectReference Include="..\Oks.Logging.Abstractions\Oks.Logging.Abstractions.csproj" />
-    <ProjectReference Include="..\Oks.Logging\Oks.Logging.csproj" />
     <ProjectReference Include="..\Oks.Persistence.Abstractions\Oks.Persistence.Abstractions.csproj" />
-    <ProjectReference Include="..\Oks.Persistence.EfCore\Oks.Persistence.EfCore.csproj" />
     <ProjectReference Include="..\Oks.Shared\Oks.Shared.csproj" />
     <ProjectReference Include="..\Oks.Web.Abstractions\Oks.Web.Abstractions.csproj" />
   </ItemGroup>

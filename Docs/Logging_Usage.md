@@ -16,6 +16,8 @@ Aşağıdaki örnek, tüm log kategorilerini MVC + Minimal API üzerinde birlikt
 </ItemGroup>
 ```
 
+> Not (2026-03-30): `Oks.Web` abstraction-only olduğu için web katmanı `Oks.Logging` concrete paketini transitif olarak getirmez. Bu usage'daki `AddOksLogging<AppDbContext>()` (veya eşdeğer kendi `IOksLogWriter` kaydın) zorunludur.
+
 ## 2) DbContext
 ```csharp
 using Microsoft.EntityFrameworkCore;
