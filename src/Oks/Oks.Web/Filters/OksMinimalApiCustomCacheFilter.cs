@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Oks.Caching;
 using Oks.Caching.Abstractions;

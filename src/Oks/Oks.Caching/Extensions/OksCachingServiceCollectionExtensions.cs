@@ -21,7 +21,6 @@ public static class OksCachingServiceCollectionExtensions
         services.TryAddSingleton<ICacheKeyGenerator, TemplateCacheKeyGenerator>();
         services.TryAddSingleton<InMemoryCacheDependencyManager>();
         services.TryAddSingleton<ICacheDependencyManager>(sp => sp.GetRequiredService<InMemoryCacheDependencyManager>());
-        services.TryAddSingleton<ICacheTagIndex, InMemoryCacheTagIndex>();
         services.TryAddSingleton<ICacheService, CacheService>();
         services.TryAddSingleton<ICacheManager, CacheManager>();
         services.TryAddSingleton<ICacheEntityNameResolver, ConventionCacheEntityNameResolver>();
