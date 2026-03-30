@@ -53,3 +53,10 @@ Bu doküman, OksFramework cache altyapısının **Entity-level cache** ve **Quer
 - TTL verilmezse `OksCachingOptions.DefaultEntryOptions.AbsoluteExpirationRelativeToNow` kullanılır.
 - Stampede protection default `true`.
 - Empty-result cache default `false`.
+
+## 7) ADR-2026-03-30 — Oks.Web abstraction-only bağımlılık kuralı
+- **Durum:** Kabul edildi.
+- **Karar:** `Oks.Web` paketi concrete uygulama paketlerine (`Oks.Caching`, `Oks.Persistence.EfCore`, `Oks.Logging`) doğrudan referans vermez.
+- **İzin verilen bağımlılıklar:** `Oks.Caching.Abstractions`, `Oks.Persistence.Abstractions`, `Oks.Logging.Abstractions`, `Oks.Web.Abstractions`, `Oks.Shared`.
+- **Gerekçe:** Web katmanının host/container composition kararlarından ayrışması, paket bağımlılık ağının sadeleşmesi ve farklı implementasyonların (ör. alternatif persistence veya logging provider) tak-çalıştır kullanımını korumak.
+- **Sonuç:** `Oks.Web` içindeki cache filtreleri yalnızca abstraction sözleşmeleriyle çalışır; concrete servis kaydı/opsiyon setleme sorumluluğu integration/composition katmanına aittir.
