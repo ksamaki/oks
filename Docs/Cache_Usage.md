@@ -3,6 +3,8 @@
 [Cache - Description](Cache_Description.md) | [Ana sayfa](../README.md)
 
 ## 1) DI kayıtları
+> Mimari not (2026-03-30): `Oks.Web` cache filtreleri sadece abstraction kontratlarını kullanır. Bu nedenle cache provider'ı (`AddOksCaching(...)` gibi) host/integration katmanında ayrıca register edilmelidir.
+
 ```csharp
 using Oks.Caching.Extensions;
 using Oks.Web.Extensions;
