@@ -6,19 +6,12 @@ namespace Oks.Caching.Internal;
 
 internal static class CacheInvocationContextResolver
 {
-    public static CacheableAttribute? ResolveCacheable<TMarker>()
-        => ResolveFromStack<TMarker, CacheableAttribute>(method =>
-            method.GetCustomAttribute<CacheableAttribute>(true)
-            ?? method.DeclaringType?.GetCustomAttribute<CacheableAttribute>(true));
+    public static OksCacheAttribute? ResolveQueryCache<TMarker>()
+        => ResolveFromStack<TMarker, OksCacheAttribute>(method => method.GetCustomAttribute<OksCacheAttribute>(true));
 
-    public static CustomCacheAttribute? ResolveCustomCache<TMarker>()
-        => ResolveFromStack<TMarker, CustomCacheAttribute>(method =>
-            method.GetCustomAttribute<CustomCacheAttribute>(true)
-            ?? method.DeclaringType?.GetCustomAttribute<CustomCacheAttribute>(true));
-
-    public static IReadOnlyList<CacheEvictAttribute> ResolveEvictAttributes<TMarker>()
+    public static IReadOnlyList<OksCacheInvalidateAttribute> ResolveInvalidationAttributes<TMarker>()
     {
-        var result = new List<CacheEvictAttribute>();
+        var result = new List<OksCacheInvalidateAttribute>();
         var trace = new StackTrace();
 
         foreach (var frame in trace.GetFrames() ?? Array.Empty<StackFrame>())
@@ -30,12 +23,7 @@ internal static class CacheInvocationContextResolver
             if (method.DeclaringType?.Assembly == typeof(TMarker).Assembly)
                 continue;
 
-            var methodAttributes = method.GetCustomAttributes<CacheEvictAttribute>(true);
-            result.AddRange(methodAttributes);
-
-            var classAttributes = method.DeclaringType?.GetCustomAttributes<CacheEvictAttribute>(true)
-                ?? Enumerable.Empty<CacheEvictAttribute>();
-            result.AddRange(classAttributes);
+            result.AddRange(method.GetCustomAttributes<OksCacheInvalidateAttribute>(true));
         }
 
         return result;

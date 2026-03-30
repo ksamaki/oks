@@ -13,7 +13,7 @@ public class CacheService : ICacheService
     private readonly IMemoryCache? _memoryCache;
     private readonly IDistributedCache? _distributedCache;
     private readonly ICacheSerializer _serializer;
-    private readonly ICacheTagIndex _tagIndex;
+    private readonly ICacheDependencyManager _dependencyManager;
     private readonly OksCachingOptions _options;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
@@ -21,13 +21,13 @@ public class CacheService : ICacheService
         IMemoryCache? memoryCache,
         IDistributedCache? distributedCache,
         ICacheSerializer serializer,
-        ICacheTagIndex tagIndex,
+        ICacheDependencyManager dependencyManager,
         IOptions<OksCachingOptions>? options = null)
     {
         _memoryCache = memoryCache;
         _distributedCache = distributedCache;
         _serializer = serializer;
-        _tagIndex = tagIndex;
+        _dependencyManager = dependencyManager;
         _options = options?.Value ?? new OksCachingOptions();
     }
 
@@ -85,30 +85,29 @@ public class CacheService : ICacheService
         await StoreAsync(key, envelope, effective, cancellationToken);
     }
 
-    public Task RemoveAsync(CacheKey key, CancellationToken cancellationToken = default)
+    public async Task RemoveAsync(CacheKey key, CancellationToken cancellationToken = default)
     {
-        _tagIndex.RemoveKey(key.Value);
+        await _dependencyManager.RemoveKeyAsync(key.Value, cancellationToken);
         if (_options.Provider == CacheProvider.Memory)
         {
             _memoryCache?.Remove(key.Value);
-            return Task.CompletedTask;
+            return;
         }
 
-        return _distributedCache?.RemoveAsync(key.Value, cancellationToken) ?? Task.CompletedTask;
+        if (_distributedCache is not null)
+            await _distributedCache.RemoveAsync(key.Value, cancellationToken);
     }
 
     public async Task RemoveByTagAsync(string tag, CancellationToken cancellationToken = default)
     {
-        var keys = _tagIndex.KeysFor(tag);
+        var keys = await _dependencyManager.ResolveKeysAsync(tag, cancellationToken);
         if (keys.Count == 0)
             return;
 
         foreach (var key in keys)
-        {
             await RemoveAsync(new CacheKey(new[] { key }), cancellationToken);
-        }
 
-        _tagIndex.RemoveTag(tag);
+        await _dependencyManager.RemoveTagAsync(tag, cancellationToken);
     }
 
     private CacheEntryOptions MergeOptions(CacheEntryOptions? options)
@@ -174,7 +173,7 @@ public class CacheService : ICacheService
     {
         if (options.Tags.Length > 0)
         {
-            _tagIndex.Map(key, options.Tags);
+            await _dependencyManager.MapAsync(key.Value, options.Tags, cancellationToken);
         }
 
         if (_options.Provider == CacheProvider.Memory)

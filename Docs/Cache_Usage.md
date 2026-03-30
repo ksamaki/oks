@@ -2,95 +2,97 @@
 
 [Cache - Description](Cache_Description.md) | [Ana sayfa](../README.md)
 
-## 1) Proje referansları
-```xml
-<ItemGroup>
-  <ProjectReference Include="..\src\Oks\Oks.Caching.Abstractions\Oks.Caching.Abstractions.csproj" />
-  <ProjectReference Include="..\src\Oks\Oks.Caching\Oks.Caching.csproj" />
-  <ProjectReference Include="..\src\Oks\Oks.Web\Oks.Web.csproj" />
-</ItemGroup>
-```
-
-## 2) DI kayıtları
+## 1) DI kayıtları
 ```csharp
 using Oks.Caching.Extensions;
 using Oks.Web.Extensions;
 
 builder.Services.AddOksCaching(options =>
 {
-    options.UseDistributedCache(services =>
-    {
-        // örnek: Redis
-        services.AddStackExchangeRedisCache(redis =>
-        {
-            redis.Configuration = builder.Configuration.GetConnectionString("Redis");
-            redis.InstanceName = "oks:";
-        });
-    });
+    options.UseDistributedCache();
+    options.UseRedis(builder.Configuration.GetConnectionString("Redis")!);
 
-    // hazır kısa yol
-    // options.UseRedis(builder.Configuration.GetConnectionString("Redis")!);
+    options.DefaultEntryOptions.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+    options.DefaultEntryOptions.SoftExpiration = TimeSpan.FromSeconds(30);
 
-    options.AddReadRepositoryCaching();
-    options.CacheOnlyRepositoryListQueries(); // varsayılan
+    options.CacheAllRepositoryQueries();
 });
 
-builder.Services.AddControllers()
-    .AddOksCustomCaching();
-
-builder.Services.AddOksCustomCaching(); // Minimal API filter servisi
+builder.Services.AddControllers().AddOksCustomCaching();
+builder.Services.AddOksCustomCaching(); // Minimal API
 ```
 
-## 3) Entity bazlı otomatik cache
+## 2) Entity-level cache
 ```csharp
 using Oks.Caching.Abstractions;
 
-[Cacheable(DurationSeconds = 180, Tags = ["product"])]
-public class Product : AuditedEntity<Guid>
+[OksEntityCache(TtlSeconds = 300, Tags = ["user"])]
+public class User : AuditedEntity<Guid>
 {
 }
 ```
 
-Bu durumda `IReadRepository<Product, Guid>` query çağrıları otomatik cache'lenir, `IWriteRepository<Product, Guid>` command çağrılarında ilgili tag/key grupları otomatik temizlenir.
-
-## 4) Action/endpoint bazlı özel cache
+## 3) Query-level cache
 ```csharp
-[CustomCache(DurationSeconds = 60, Tags = ["catalog"])]
-[HttpGet("catalog")]
-public async Task<IActionResult> GetCatalog() => Ok(await _service.GetCatalogAsync());
-
-[CustomCache(Evict = true, Tags = ["catalog"])]
-[HttpPost("catalog/rebuild")]
-public async Task<IActionResult> RebuildCatalog() => Ok(await _service.RebuildAsync());
+[OksCache(
+    Key = "friends:list:user:{userId}",
+    Tags = new[] { "user-friends:{userId}" },
+    TtlSeconds = 300,
+    CacheEmptyResult = true,
+    StampedeProtection = true
+)]
+Task<List<UserFriendDto>> ListUserFriends(Guid userId);
 ```
 
-## 5) Minimal API ile kullanım
-```csharp
-var api = app.MapGroup("/api").AddOksCustomCaching();
+Aynı method farklı parametre ile çağrıldığında farklı key üretir:
+- `friends:list:user:111...`
+- `friends:list:user:222...`
 
-api.MapGet("/products", [CustomCache(DurationSeconds = 45, Tags = ["product:list"])]
-    async (IProductQueryService svc) => await svc.GetAsync());
+## 4) Invalidate (dependency/tag bazlı)
+```csharp
+[OksCacheInvalidate(
+    Tags = new[] { "user-friends:{userId}", "user-friends:{friendUserId}" }
+)]
+Task RemoveFriend(Guid userId, Guid friendUserId);
 ```
 
-## 6) Elle cache yönetimi
+### Wildcard invalidate
 ```csharp
-public class PriceService(ICacheManager cacheManager)
+[OksCacheInvalidate(Tags = new[] { "user-friends:*" })]
+Task RebuildFriendsProjection();
+```
+
+## 5) Birlikte kullanım örneği
+```csharp
+public interface IFriendService
 {
-    public Task<decimal> GetPriceAsync(Guid id, CancellationToken ct)
-        => cacheManager.GetOrSetAsync($"price:{id}", () => LoadFromSource(id, ct),
-            new CacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
-                Tags = ["price"]
-            }, ct);
+    [OksCache(
+        Key = "friends:list:user:{userId}",
+        Tags = new[] { "user-friends:{userId}" },
+        TtlSeconds = 300
+    )]
+    Task<List<UserFriendDto>> ListUserFriends(Guid userId);
 
-    public Task ClearAsync(Guid id, CancellationToken ct)
-        => cacheManager.RemoveAsync($"price:{id}", ct);
+    [OksCache(
+        Key = "friends:summary:user:{userId}",
+        Tags = new[] { "user-friends:{userId}" }
+    )]
+    Task<FriendSummaryDto> GetFriendSummary(Guid userId);
+
+    [OksCacheInvalidate(
+        Tags = new[] { "user-friends:{userId}", "user-friends:{friendUserId}" }
+    )]
+    Task AddFriend(Guid userId, Guid friendUserId);
+
+    [OksCacheInvalidate(
+        Tags = new[] { "user-friends:{userId}", "user-friends:{friendUserId}" }
+    )]
+    Task RemoveFriend(Guid userId, Guid friendUserId);
 }
 ```
 
-
-## 7) DTO -> Entity otomatik etiket eşleme
-`[CustomCache]` içinde tag verilmezse framework, action/endpoint argüman ve dönüş tiplerinden
-konvansiyonel entity adı üretir (`ProductQuery`, `ProductDto`, `ProductResponse` -> `Product`).
-Böylece query/command tarafında dolma/yırtma tagleri otomatik üretilebilir.
+## 6) Kısıtlar
+- `[OksEntityCache]` method üstünde kullanılamaz.
+- `[OksCache]` entity class üstünde kullanılamaz.
+- Yanlış kullanım compile-time’da `AttributeUsage` ile engellenir.
+- Runtime’da web filter katmanında ek doğrulama yapılır.

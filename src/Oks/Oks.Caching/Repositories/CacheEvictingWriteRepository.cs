@@ -36,8 +36,7 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         _queryScope = cachingOptions?.Value.RepositoryQueryCacheScope ?? RepositoryQueryCacheScope.ListOnly;
     }
 
-    public IQueryable<TEntity> Query()
-        => _inner.Query();
+    public IQueryable<TEntity> Query() => _inner.Query();
 
     public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
@@ -45,56 +44,28 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         if (!policy.Enabled || _queryScope == RepositoryQueryCacheScope.ListOnly)
             return await _inner.GetByIdAsync(id, cancellationToken);
 
-        var key = policy.KeyTemplate is { Length: > 0 }
-            ? _keyBuilder.FromTemplate(policy.KeyTemplate, new { id })
-            : _keyBuilder.ForRead<TEntity>("GetById", new { id });
-
-        var options = WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), policy);
-
-        return await _cacheService.GetOrAddAsync(key,
-            () => _inner.GetByIdAsync(id, cancellationToken),
-            options,
-            cancellationToken);
+        var key = _keyBuilder.ForRead<TEntity>("GetById", new { id });
+        return await _cacheService.GetOrAddAsync(key, () => _inner.GetByIdAsync(id, cancellationToken), WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), policy), cancellationToken);
     }
 
-    public async Task<TEntity?> GetAsync(
-        Expression<Func<TEntity, bool>> predicate,
-        CancellationToken cancellationToken = default)
+    public async Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
     {
         var policy = ResolveReadPolicy();
         if (!policy.Enabled || _queryScope == RepositoryQueryCacheScope.ListOnly)
             return await _inner.GetAsync(predicate, cancellationToken);
 
-        var key = policy.KeyTemplate is { Length: > 0 }
-            ? _keyBuilder.FromTemplate(policy.KeyTemplate, predicate.ToString())
-            : _keyBuilder.ForRead<TEntity>("Get", predicate.ToString());
-
-        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy);
-
-        return await _cacheService.GetOrAddAsync(key,
-            () => _inner.GetAsync(predicate, cancellationToken),
-            options,
-            cancellationToken);
+        var key = _keyBuilder.ForRead<TEntity>("Get", predicate.ToString());
+        return await _cacheService.GetOrAddAsync(key, () => _inner.GetAsync(predicate, cancellationToken), WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy), cancellationToken);
     }
 
-    public async Task<List<TEntity>> GetListAsync(
-        Expression<Func<TEntity, bool>>? predicate = null,
-        CancellationToken cancellationToken = default)
+    public async Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {
         var policy = ResolveReadPolicy();
         if (!policy.Enabled)
             return await _inner.GetListAsync(predicate, cancellationToken);
 
-        var key = policy.KeyTemplate is { Length: > 0 }
-            ? _keyBuilder.FromTemplate(policy.KeyTemplate, predicate?.ToString())
-            : _keyBuilder.ForRead<TEntity>("GetList", predicate?.ToString());
-
-        var options = WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy);
-
-        return await _cacheService.GetOrAddAsync(key,
-            () => _inner.GetListAsync(predicate, cancellationToken),
-            options,
-            cancellationToken);
+        var key = _keyBuilder.ForRead<TEntity>("GetList", predicate?.ToString());
+        return await _cacheService.GetOrAddAsync(key, () => _inner.GetListAsync(predicate, cancellationToken), WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy), cancellationToken);
     }
 
     public async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -117,97 +88,39 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
     private async Task EvictAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        var entityCacheable = typeof(TEntity).GetCustomAttributes(typeof(CacheableAttribute), true).Length > 0;
-        var custom = CacheInvocationContextResolver.ResolveCustomCache<CacheEvictingWriteRepository<TEntity, TKey>>();
+        var entityCacheable = typeof(TEntity).GetCustomAttributes(typeof(OksEntityCacheAttribute), true).Length > 0;
+        var invalidateAttributes = CacheInvocationContextResolver.ResolveInvalidationAttributes<CacheEvictingWriteRepository<TEntity, TKey>>();
 
-        if (!entityCacheable && custom is null && !CacheInvocationContextResolver.ResolveEvictAttributes<CacheEvictingWriteRepository<TEntity, TKey>>().Any())
+        if (!entityCacheable && !invalidateAttributes.Any())
             return;
 
         var tags = new HashSet<string>(CacheTagHelper.ForEntity<TEntity, TKey>(entity));
-
-        if (custom is not null)
-        {
-            foreach (var tag in custom.Tags)
-            {
-                tags.Add(tag);
-            }
-
-            if (custom.EvictAllEntityCache)
-            {
-                tags.Add(typeof(TEntity).Name);
-                tags.Add($"Query:{typeof(TEntity).Name}");
-            }
-        }
-
-        foreach (var attribute in CacheInvocationContextResolver.ResolveEvictAttributes<CacheEvictingWriteRepository<TEntity, TKey>>())
+        foreach (var attribute in invalidateAttributes)
         {
             foreach (var tag in attribute.Tags)
-            {
                 tags.Add(tag);
-            }
-
-            if (attribute.EvictAllEntityCache)
-            {
-                tags.Add(typeof(TEntity).Name);
-                tags.Add($"Query:{typeof(TEntity).Name}");
-            }
         }
 
         foreach (var tag in tags)
-        {
             await _cacheService.RemoveByTagAsync(tag, cancellationToken);
-        }
     }
 
     private CachePolicy ResolveReadPolicy()
     {
-        var entityCacheable = typeof(TEntity).GetCustomAttributes(typeof(CacheableAttribute), true)
-            .Cast<CacheableAttribute>()
+        var entityCache = typeof(TEntity).GetCustomAttributes(typeof(OksEntityCacheAttribute), true)
+            .Cast<OksEntityCacheAttribute>()
             .FirstOrDefault();
-        var methodCacheable = CacheInvocationContextResolver.ResolveCacheable<CacheEvictingWriteRepository<TEntity, TKey>>();
-        var custom = CacheInvocationContextResolver.ResolveCustomCache<CacheEvictingWriteRepository<TEntity, TKey>>();
 
-        var hasCacheable = entityCacheable is not null || methodCacheable is not null;
-        var hasCustomCache = custom is { Evict: false };
+        if (entityCache is null)
+            return new CachePolicy(false, null, Array.Empty<string>());
 
-        var enabled = hasCacheable || hasCustomCache;
-        var source = custom is { Evict: false }
-            ? custom
-            : (object?)methodCacheable ?? entityCacheable;
-
-        return new CachePolicy(
-            enabled,
-            source switch
-            {
-                CustomCacheAttribute customCache => customCache.KeyTemplate,
-                CacheableAttribute cacheable => cacheable.KeyTemplate,
-                _ => string.Empty
-            },
-            source switch
-            {
-                CustomCacheAttribute customCache => customCache.DurationSeconds,
-                CacheableAttribute cacheable => cacheable.DurationSeconds,
-                _ => 0
-            },
-            source switch
-            {
-                CustomCacheAttribute customCache => customCache.Tags,
-                CacheableAttribute cacheable => cacheable.Tags,
-                _ => Array.Empty<string>()
-            });
+        return new CachePolicy(true, entityCache.TtlSeconds, entityCache.Tags);
     }
 
-    private CacheEntryOptions WithTags(
-        IReadOnlyCollection<string> tags,
-        CachePolicy policy)
+    private CacheEntryOptions WithTags(IReadOnlyCollection<string> tags, CachePolicy policy)
     {
-        var mergedTags = policy.Tags.Length > 0
-            ? tags.Concat(policy.Tags).Distinct().ToArray()
-            : tags.ToArray();
-
-        var absolute = policy.DurationSeconds > 0
-            ? TimeSpan.FromSeconds(policy.DurationSeconds)
-            : _defaults.AbsoluteExpirationRelativeToNow;
+        var mergedTags = policy.Tags.Length > 0 ? tags.Concat(policy.Tags).Distinct().ToArray() : tags.ToArray();
+        var absolute = policy.TtlSeconds.HasValue ? TimeSpan.FromSeconds(policy.TtlSeconds.Value) : _defaults.AbsoluteExpirationRelativeToNow;
 
         return new CacheEntryOptions
         {
@@ -219,5 +132,5 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
         };
     }
 
-    private sealed record CachePolicy(bool Enabled, string KeyTemplate, int DurationSeconds, string[] Tags);
+    private sealed record CachePolicy(bool Enabled, int? TtlSeconds, string[] Tags);
 }

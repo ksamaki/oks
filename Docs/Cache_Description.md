@@ -2,41 +2,54 @@
 
 [Cache - Usage](Cache_Usage.md) | [Ana sayfa](../README.md)
 
-`Oks.Caching`, artık framework genelinde kullanılabilen tekil bir cache altyapısıdır. Redis sadece belirli bir domain'in parçası değil; tüm framework modülleri ve framework tüketen uygulamalar için yeniden kullanılabilir bir bileşen olarak konumlandırılmıştır.
+Bu doküman, OksFramework cache altyapısının **Entity-level cache** ve **Query-level cache** olarak ayrıştırılmış yeni mimarisini açıklar.
 
-## Temel hedef
-- Varsayılan olarak **pasif** kalır, sadece attribute ile işaretlenen alanlarda çalışır.
-- Entity seviyesinde `[Cacheable]` ile query tarafında otomatik `GetOrSet` çalışır.
-- Command tarafında aynı entity için cache otomatik temizlenir (yırtılır).
-- Ek iş akışları için method/action/class seviyesinde `[CustomCache]` ile davranış özelleştirilebilir.
-- Minimal API ve MVC senaryolarında aynı yaklaşım desteklenir.
+## 1) Tasarım hedefi
+- Entity-level cache (`[OksEntityCache]`) yalnızca entity class’larda çalışır.
+- Query-level cache (`[OksCache]`) yalnızca method seviyesinde çalışır (service/application/repository).
+- Invalidate işlemleri key bazlı değil, **dependency/tag bazlı** yapılır (`[OksCacheInvalidate]`).
+- Distributed senaryoda Redis ile tag->key eşlemesi yönetilebilir.
+- Cache-aside pattern, TTL, empty-result cache, stampede protection desteklenir.
 
-## Bileşenler
-- `Oks.Caching.Abstractions`
-  - `ICacheService`, `ICacheManager`
-  - `CacheKey`, `CacheEntryOptions`
-  - `[Cacheable]`, `[CacheEvict]`, `[CustomCache]`
-- `Oks.Caching`
-  - `CacheService` (Memory + Distributed)
-  - `CacheManager` (elle cache yönetimi)
-  - Repository dekoratörleri (`CachedReadRepository`, `CacheEvictingWriteRepository`)
-  - Redis bağlantısı için `UseRedis(...)`
-- `Oks.Web`
-  - MVC: `OksCustomCacheFilter`
-  - Minimal API: `OksMinimalApiCustomCacheFilter`
+## 2) Attribute modeli
 
-## Çalışma modeli
-1. `AddOksCaching(...)` ile altyapı eklenir.
-2. Entity üzerinde `[Cacheable]` varsa repository query'leri cache'e alınır.
-3. Aynı entity üzerinde write olduğunda entity tag'leri otomatik temizlenir.
-4. Endpoint/action seviyesinde `[CustomCache]` varsa response cache veya explicit evict uygulanır.
-5. Elle kullanımda `ICacheManager` ile key/tag bazlı set/get/remove yapılabilir.
+### Entity-level
+- `OksEntityCacheAttribute`
+- `[AttributeUsage(AttributeTargets.Class)]`
+- Method/service üstünde kullanılamaz (compile-time kısıtı).
+- Write repository (insert/update/delete) sonrası entity ilişkili tag’ler otomatik invalidate edilir.
 
-## Güvenlik ve performans
-- Varsayılan davranış tüm endpointleri cache'lemek değildir.
-- Soft TTL + single-flight ile stampede riski azaltılır.
-- Memory veya distributed provider seçimi opsiyoneldir.
-- Distributed provider tarafı extensible'dır: özel provider DI kaydı verilebilir, Redis ise `UseRedis(...)` ile hazır profil olarak kullanılabilir.
-- Repository query cache kapsamı varsayılan olarak sadece liste sorgularıdır (`ListOnly`), istenirse `CacheAllRepositoryQueries()` ile genişletilebilir.
+### Query-level
+- `OksCacheAttribute`
+- `[AttributeUsage(AttributeTargets.Method)]`
+- Entity class üstünde kullanılamaz (compile-time kısıtı).
+- Parametre tabanlı key/tag template çözer (`friends:list:user:{userId}`).
 
-Redis odaklı ayrı doküman: [Redis_Description.md](Redis_Description.md)
+### Invalidate
+- `OksCacheInvalidateAttribute`
+- `[AttributeUsage(AttributeTargets.Method, AllowMultiple=true)]`
+- Bir method birden fazla tag invalidate edebilir.
+- Wildcard invalidate desteklenir (`user-friends:*`).
+
+## 3) Temel interface’ler
+- `ICacheKeyGenerator`
+  - Method parametrelerinden template çözümü ve key/tag üretimi.
+- `ICacheDependencyManager`
+  - key<->tag mapping, resolve, tag temizleme.
+
+## 4) Redis uyumu
+- `RedisCacheDependencyManager`
+- Tag mapping Redis Set üstünden tutulur (`oks:cache:tag:{tag}` -> keys).
+- Tek tag veya wildcard pattern ile ilgili tüm key’ler bulunup invalidate edilir.
+
+## 5) Interceptor/Pipeline
+- MVC: `OksCustomCacheFilter`
+- Minimal API: `OksMinimalApiCustomCacheFilter`
+- Ortak executor: `OksQueryCacheExecutor`
+  - Önce `[OksCacheInvalidate]` tag’lerini temizler.
+  - Sonra `[OksCache]` için cache-aside çalıştırır.
+
+## 6) Varsayılanlar
+- TTL verilmezse `OksCachingOptions.DefaultEntryOptions.AbsoluteExpirationRelativeToNow` kullanılır.
+- Stampede protection default `true`.
+- Empty-result cache default `false`.

@@ -1,46 +1,19 @@
 using Oks.Caching.Abstractions;
-using System.Collections.Concurrent;
 
 namespace Oks.Caching.Tags;
 
-public sealed class InMemoryCacheTagIndex : ICacheTagIndex
+[Obsolete("Use InMemoryCacheDependencyManager instead.")]
+public sealed class InMemoryCacheTagIndex(InMemoryCacheDependencyManager inner) : ICacheTagIndex
 {
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _tagToKeys = new();
-
     public void Map(CacheKey key, IEnumerable<string> tags)
-    {
-        foreach (var tag in tags)
-        {
-            var map = _tagToKeys.GetOrAdd(tag, _ => new ConcurrentDictionary<string, byte>());
-            map[key.Value] = 0;
-        }
-    }
+        => inner.MapAsync(key.Value, tags).GetAwaiter().GetResult();
 
     public IReadOnlyCollection<string> KeysFor(string tag)
-    {
-        if (_tagToKeys.TryGetValue(tag, out var keys))
-        {
-            return keys.Keys.ToArray();
-        }
-
-        return Array.Empty<string>();
-    }
+        => inner.ResolveKeysAsync(tag).GetAwaiter().GetResult();
 
     public void RemoveKey(string key)
-    {
-        foreach (var kvp in _tagToKeys)
-        {
-            kvp.Value.TryRemove(key, out _);
-
-            if (kvp.Value.IsEmpty)
-            {
-                _tagToKeys.TryRemove(kvp.Key, out _);
-            }
-        }
-    }
+        => inner.RemoveKeyAsync(key).GetAwaiter().GetResult();
 
     public void RemoveTag(string tag)
-    {
-        _tagToKeys.TryRemove(tag, out _);
-    }
+        => inner.RemoveTagAsync(tag).GetAwaiter().GetResult();
 }
