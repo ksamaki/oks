@@ -1,6 +1,4 @@
-using Oks.Caching.Abstractions;
-
-namespace Oks.Caching;
+namespace Oks.Caching.Abstractions;
 
 public class OksCachingOptions
 {

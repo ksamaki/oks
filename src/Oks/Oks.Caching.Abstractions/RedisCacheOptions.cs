@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Oks.Caching;
+namespace Oks.Caching.Abstractions;
 
 public sealed class RedisCacheOptions
 {

@@ -1,4 +1,4 @@
-namespace Oks.Caching;
+namespace Oks.Caching.Abstractions;
 
 public enum RepositoryQueryCacheScope
 {
