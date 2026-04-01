@@ -4,6 +4,8 @@
 
 Bu doküman, JWT varsayılan kurulumunu ve opsiyonel OpenIddict adaptasyonunu uçtan uca örnekler.
 
+> Not: Abstraction-only standartı gereği `AddOksAuthentication()` tek başına tüm auth bağımlılıklarını tamamlamaz. Host uygulama `IClientStore` ve `IUserCredentialValidator` (ve seçilen akışa göre diğer kontratlar) kayıtlarını explicit olarak yapmalıdır.
+
 ## 1) Proje referansları
 
 ```xml
@@ -39,11 +41,51 @@ public sealed class AppAuthDbContext : OksAuthenticationDbContext
 }
 ```
 
-## 3) Service registration (JWT default)
+## 3) Host implementasyonları (zorunlu)
+
+`DefaultAuthenticationService` çalışması için en az şu iki sözleşmenin host tarafından implemente edilmesi gerekir:
+
+- `IClientStore`
+- `IUserCredentialValidator`
+
+Örnek (iskelet) implementasyonlar:
+
+```csharp
+using Oks.Authentication.Abstractions.Contracts;
+using Oks.Authentication.Abstractions.Models;
+
+public sealed class AppClientStore : IClientStore
+{
+    public Task<ClientContext?> GetActiveClientAsync(string clientCode, CancellationToken cancellationToken = default)
+    {
+        // TODO: DB/Config/IdentityServer kaynağından oku
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> ValidateSecretAsync(string clientCode, string? providedSecret, CancellationToken cancellationToken = default)
+    {
+        // TODO: hash karşılaştırması + active kontrolü
+        throw new NotImplementedException();
+    }
+}
+
+public sealed class AppUserCredentialValidator : IUserCredentialValidator
+{
+    public Task<AuthenticatedUser?> ValidateAsync(string userName, string password, string clientCode, CancellationToken cancellationToken = default)
+    {
+        // TODO: Identity/LDAP/custom user store doğrulaması
+        throw new NotImplementedException();
+    }
+}
+```
+
+## 4) Service registration (JWT default + abstraction-only composition)
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Oks.Authentication.AspNetCore.Extensions;
+using Oks.Authentication.Abstractions.Contracts;
+using Oks.Authentication.Core.Extensions;
 using Oks.Authentication.EntityFrameworkCore.Extensions;
 using Oks.Authentication.Jwt.Extensions;
 
@@ -53,7 +95,8 @@ builder.Services.AddDbContext<OksAuthenticationDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services
-    .AddOksAuthentication()
+    .AddOksAuthentication()       // only ASP.NET Core auth/authorization plumbing
+    .AddOksAuthenticationCore()   // IAuthenticationService + default core orchestration
     .AddOksJwt(jwt =>
     {
         jwt.Issuer = "oks-auth";
@@ -68,6 +111,9 @@ builder.Services
         ef.AutoMigrate = true;
     });
 
+builder.Services.AddScoped<IClientStore, AppClientStore>();
+builder.Services.AddScoped<IUserCredentialValidator, AppUserCredentialValidator>();
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -79,7 +125,7 @@ app.MapControllers();
 app.Run();
 ```
 
-## 4) Permission policy örneği
+## 5) Permission policy örneği
 
 ```csharp
 builder.Services.AddOksPermissionPolicy("CanManageUsers", "users.manage");
@@ -89,7 +135,7 @@ builder.Services.AddOksPermissionPolicy("CanManageUsers", "users.manage");
 public IActionResult GetUsers() => Ok();
 ```
 
-## 5) Login/Refresh/Logout endpoint örneği
+## 6) Login/Refresh/Logout endpoint örneği
 
 ```csharp
 using Oks.Authentication.Abstractions.Contracts;
@@ -131,7 +177,7 @@ public sealed class AuthController : ControllerBase
 }
 ```
 
-## 6) Seed çalıştırma örneği
+## 7) Seed çalıştırma örneği
 
 ```csharp
 using Oks.Authentication.EntityFrameworkCore.Services;
@@ -141,7 +187,7 @@ var seeder = scope.ServiceProvider.GetRequiredService<OksAuthenticationSeeder>()
 await seeder.SeedAsync();
 ```
 
-## 7) Multi-client seed örneği
+## 8) Multi-client seed örneği
 
 ```csharp
 // Örnek clientlar:
@@ -151,7 +197,7 @@ await seeder.SeedAsync();
 // - oks_external_int   (External integration)
 ```
 
-## 8) OpenIddict opsiyonel entegrasyon
+## 9) OpenIddict opsiyonel entegrasyon
 
 Bu modül adapter pattern ile çalışır.
 Host uygulama OpenIddict paketlerini kendi projesine ekleyip konfigüratör sınıfı sağlar.
@@ -175,7 +221,7 @@ builder.Services.AddOksOpenIddict<MyOpenIddictConfigurator>(opt =>
 });
 ```
 
-## 9) Güvenlik checklist (önerilen)
+## 10) Güvenlik checklist (önerilen)
 
 - JWT signing key'i appsettings yerine secret manager / vault üzerinden yönetin.
 - Refresh token ham değerini loglamayın.
@@ -183,10 +229,13 @@ builder.Services.AddOksOpenIddict<MyOpenIddictConfigurator>(opt =>
 - Revoke edilen token/session için API seviyesinde deny-list stratejisi planlayın.
 - Üretimde HTTPS zorunlu + secure cookie/header policy kullanın.
 
-## 10) Hızlı özet akış
+## 11) Hızlı özet akış
 
-1. `AddOksAuthentication` + `AddOksJwt` + `AddOksAuthenticationEntityFramework`
-2. `UseOksAuthentication`
-3. (Opsiyonel) `UseOksAuthenticationEntityFrameworkAsync` ile migrate
-4. (Opsiyonel) `OksAuthenticationSeeder` ile başlangıç role/permission/client seed
-5. Controller/endpoint üzerinden `IAuthenticationService` çağrıları
+1. `AddOksAuthentication` (ASP.NET Core katmanı)
+2. `AddOksAuthenticationCore` (iş akışı orchestration)
+3. `AddOksJwt` + `AddOksAuthenticationEntityFramework` (seçilen concrete implementasyonlar)
+4. `IClientStore` + `IUserCredentialValidator` host kayıtları
+5. `UseOksAuthentication`
+6. (Opsiyonel) `UseOksAuthenticationEntityFrameworkAsync` ile migrate
+7. (Opsiyonel) `OksAuthenticationSeeder` ile başlangıç role/permission/client seed
+8. Controller/endpoint üzerinden `IAuthenticationService` çağrıları
