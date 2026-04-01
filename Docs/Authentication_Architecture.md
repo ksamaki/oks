@@ -28,6 +28,8 @@ Bu doküman, OksFramework içinde kullanılacak modüler authentication altyapı
 - **EFCore**: Kalıcılık, tablo şeması, seed, auto-migrate.
 - **AspNetCore**: Kolay kurulum API’si (`AddOksAuthentication`, `UseOksAuthentication`) + permission policy.
 
+> Abstraction-only notu: `AddOksAuthentication` yalnızca ASP.NET Core auth/authorization pipeline’ını kurar; `IAuthenticationService` ve diğer domain sözleşmeleri host tarafından explicit compose edilir (`AddOksAuthenticationCore`, `AddOksJwt`, `AddOksAuthenticationEntityFramework`, custom store implementasyonları).
+
 ## 3) Entity Listesi ve İlişkiler
 
 Temel tablolar:
@@ -61,6 +63,7 @@ Temel tablolar:
 ```csharp
 services
     .AddOksAuthentication()
+    .AddOksAuthenticationCore()
     .AddOksJwt(options =>
     {
         options.Issuer = "oks-auth";

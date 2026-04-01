@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Oks.Authentication.Abstractions.Contracts;
 using Oks.Authentication.AspNetCore.Authorization;
-using Oks.Authentication.Core.Services;
 
 namespace Oks.Authentication.AspNetCore.Extensions;
 
@@ -16,9 +14,7 @@ public static class OksAuthenticationServiceCollectionExtensions
             .AddJwtBearer();
 
         services.AddAuthorization();
-        services.AddScoped<IAuthenticationService, DefaultAuthenticationService>();
         services.AddSingleton<IAuthorizationHandler, OksPermissionAuthorizationHandler>();
-        services.AddSingleton<IAuthSecurityEventPublisher, NoOpAuthSecurityEventPublisher>();
         return services;
     }
 

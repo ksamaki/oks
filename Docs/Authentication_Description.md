@@ -4,6 +4,8 @@
 
 OKS Authentication modülü; **JWT varsayılan**, **OpenIddict opsiyonel**, **multi-client destekli**, **mikroservis uyumlu** ve **EF Core ile kendi tablolarını yönetebilen** bir auth altyapısı sağlar.
 
+> Mimari not (Abstraction-only): `Oks.Authentication.AspNetCore` artık yalnızca ASP.NET Core pipeline/policy entegrasyonunu yapar. Authentication iş akışı (`IAuthenticationService`) ve persistence/credential implementasyonları host tarafından ayrı modüllerle compose edilir.
+
 ## Modüler yapı
 
 | Modül | Sorumluluk | Zorunlu mu? |
@@ -16,6 +18,23 @@ OKS Authentication modülü; **JWT varsayılan**, **OpenIddict opsiyonel**, **mu
 | `Oks.Authentication.OpenIddict` | OpenID Connect / Authorization Server adapter | ❌ (opsiyonel) |
 
 > Not: `Core` modülü OpenIddict'e doğrudan bağımlı değildir. Sadece JWT kullanacak host uygulamalar OpenIddict referansı almak zorunda kalmaz.
+
+## Abstraction-only composition standardı
+
+Authentication modülünde host uygulamanın explicit compose etmesi gereken kontratlar:
+
+- `IAuthenticationService` (genelde `DefaultAuthenticationService` ile)
+- `ITokenIssuer` (örn. `JwtTokenIssuer`)
+- `IRefreshTokenStore` (örn. `EfCoreRefreshTokenStore`)
+- `IClientStore` (host implementasyonu)
+- `IUserCredentialValidator` (host implementasyonu)
+- `ISecretHasher` (örn. `Sha256SecretHasher` veya host alternatifi)
+- `IAuthSecurityEventPublisher` (`NoOp` veya kalıcı/event-bus publish eden implementasyon)
+
+Bu sayede:
+- AspNetCore katmanı persistence/details bilmez.
+- JWT/OpenIddict/persistence seçimleri host tarafından değiştirilebilir.
+- Testlerde fake implementasyonlarla auth akışı kolay izole edilir.
 
 ## Desteklenen temel senaryolar
 
@@ -74,6 +93,19 @@ OKS Authentication modülü; **JWT varsayılan**, **OpenIddict opsiyonel**, **mu
 - Ortak claim sözlüğü (`OksClaimTypes`) ile servisler arası standardizasyon
 - Gelecekte Redis/distributed cache için abstraction noktaları
 - Gelecekte audit/security event publish için hook noktaları (`IAuthSecurityEventPublisher`)
+
+## Zorunlu host implementasyonları
+
+`Oks.Authentication.EntityFrameworkCore` şu an doğrudan aşağıdakileri sağlar:
+- `IRefreshTokenStore`
+- `ISecretHasher`
+- `IAuthSecurityEventPublisher` (EF tabanlı)
+
+Host uygulama ayrıca şunları sağlamalıdır:
+- `IClientStore`
+- `IUserCredentialValidator`
+
+Bu iki sözleşme bilinçli olarak abstraction seviyesinde bırakılmıştır; çünkü kullanıcı kaynağı (Identity, LDAP, custom user table, harici servis) projeden projeye değişir.
 
 ## EF Core tablo seti
 
