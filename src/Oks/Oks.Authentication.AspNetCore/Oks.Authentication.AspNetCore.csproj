@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Oks.Authentication.Abstractions\Oks.Authentication.Abstractions.csproj" />
+    <ProjectReference Include="..\Oks.Authentication.Core\Oks.Authentication.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
