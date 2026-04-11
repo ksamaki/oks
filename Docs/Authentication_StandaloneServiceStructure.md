@@ -2,7 +2,7 @@
 
 [Ana sayfa](../README.md) | [Authentication - Description](Authentication_Description.md) | [Authentication - Usage](Authentication_Usage.md) | [Authentication - Project Structure](Authentication_ProjectStructure.md)
 
-Bu dokuman, Authentication alanini mevcut bir uygulamanin ic modulu olarak degil, ayri deploy edilen bir servis olarak kurmak isteyen projeler icin hazirlanmistir. Ornek isimlendirme `Authr` uzerindendir.
+Bu dokuman, Authentication alanini ayri deploy edilen servis olarak kurmak isteyen projeler icin hazirlanmistir. Ornek isimlendirme `Authr` uzerindendir.
 
 Bu yapi su senaryoya hitap eder:
 
@@ -54,33 +54,26 @@ src/
     Authr.Domain.csproj
     Aggregates/
       Users/
-        User.cs
-        UserSession.cs
+        Entities/
+        Events/
+        ValueObjects/
       Roles/
-        Role.cs
+        Entities/
+        Events/
+        ValueObjects/
       Clients/
-        Client.cs
+        Entities/
+        Events/
+        ValueObjects/
       RefreshTokens/
-        RefreshToken.cs
+        Entities/
+        Events/
+        ValueObjects/
     Events/
-      UserLoggedInDomainEvent.cs
-      UserLoggedOutDomainEvent.cs
-      RefreshTokenRevokedDomainEvent.cs
     Enums/
-      ClientType.cs
-      UserStatus.cs
-      TokenStatus.cs
     Policies/
-      PasswordPolicy.cs
-      LockoutPolicy.cs
     Repositories/
-      IUserRepository.cs
-      IClientRepository.cs
-      IRefreshTokenRepository.cs
     ValueObjects/
-      EmailAddress.cs
-      PasswordHash.cs
-      RefreshTokenHash.cs
 
   Authr.Application/
     Authr.Application.csproj
@@ -89,44 +82,106 @@ src/
       Models/
       Behaviors/
     Auth/
+      Services/
+        AuthenticationOrchestratorService.cs
+        IAuthenticationOrchestratorService.cs
       Commands/
         Login/
+          LoginCommand.cs
+          LoginCommandHandler.cs
+          LoginRequestDto.cs
+          LoginResponseDto.cs
+          LoginCommandValidator.cs
         RefreshToken/
+          RefreshTokenCommand.cs
+          RefreshTokenCommandHandler.cs
+          RefreshTokenRequestDto.cs
+          RefreshTokenResponseDto.cs
+          RefreshTokenCommandValidator.cs
         Logout/
+          LogoutCommand.cs
+          LogoutCommandHandler.cs
+          LogoutRequestDto.cs
+          LogoutResponseDto.cs
+          LogoutCommandValidator.cs
         RevokeToken/
+          RevokeTokenCommand.cs
+          RevokeTokenCommandHandler.cs
+          RevokeTokenRequestDto.cs
+          RevokeTokenResponseDto.cs
+          RevokeTokenCommandValidator.cs
       Queries/
         IntrospectToken/
+          IntrospectTokenQuery.cs
+          IntrospectTokenQueryHandler.cs
+          IntrospectTokenRequestDto.cs
+          IntrospectTokenResponseDto.cs
+          IntrospectTokenQueryValidator.cs
         GetSessionById/
-      Dtos/
-      Validators/
-      Interfaces/
-      Services/
+          GetSessionByIdQuery.cs
+          GetSessionByIdQueryHandler.cs
+          GetSessionByIdRequestDto.cs
+          GetSessionByIdResponseDto.cs
+          GetSessionByIdQueryValidator.cs
     Users/
-      Commands/
-      Queries/
-      Dtos/
-      Validators/
-      Interfaces/
       Services/
+        UserPermissionResolverService.cs
+        IUserPermissionResolverService.cs
+      Commands/
+        RegisterUser/
+          RegisterUserCommand.cs
+          RegisterUserCommandHandler.cs
+          RegisterUserRequestDto.cs
+          RegisterUserResponseDto.cs
+          RegisterUserCommandValidator.cs
+      Queries/
+        GetUserById/
+          GetUserByIdQuery.cs
+          GetUserByIdQueryHandler.cs
+          GetUserByIdRequestDto.cs
+          GetUserByIdResponseDto.cs
+          GetUserByIdQueryValidator.cs
     Roles/
-      Commands/
-      Queries/
-      Dtos/
-      Validators/
-      Interfaces/
       Services/
+        RolePermissionMapperService.cs
+        IRolePermissionMapperService.cs
+      Commands/
+        CreateRole/
+          CreateRoleCommand.cs
+          CreateRoleCommandHandler.cs
+          CreateRoleRequestDto.cs
+          CreateRoleResponseDto.cs
+          CreateRoleCommandValidator.cs
+      Queries/
+        GetRoleById/
+          GetRoleByIdQuery.cs
+          GetRoleByIdQueryHandler.cs
+          GetRoleByIdRequestDto.cs
+          GetRoleByIdResponseDto.cs
+          GetRoleByIdQueryValidator.cs
     Clients/
-      Commands/
-      Queries/
-      Dtos/
-      Validators/
-      Interfaces/
       Services/
+        ClientSecretService.cs
+        IClientSecretService.cs
+      Commands/
+        CreateClient/
+          CreateClientCommand.cs
+          CreateClientCommandHandler.cs
+          CreateClientRequestDto.cs
+          CreateClientResponseDto.cs
+          CreateClientCommandValidator.cs
+      Queries/
+        GetClientById/
+          GetClientByIdQuery.cs
+          GetClientByIdQueryHandler.cs
+          GetClientByIdRequestDto.cs
+          GetClientByIdResponseDto.cs
+          GetClientByIdQueryValidator.cs
 
   Authr.Infrastructure/
     Authr.Infrastructure.csproj
     Persistence/
-      AuthrDbContext.cs
+      Context/
       Configurations/
       Repositories/
       UnitOfWork/
@@ -134,48 +189,29 @@ src/
       Seed/
     Security/
       Jwt/
-        JwtTokenGenerator.cs
-        JwtSigningKeyProvider.cs
       Hashing/
-        PasswordHasher.cs
-        SecretHasher.cs
     Integrations/
       Cache/
       Messaging/
       Logging/
       Time/
+      Observability/
     DependencyInjection/
-      ServiceCollectionExtensions.cs
 
   Authr.Contracts/
     Authr.Contracts.csproj
     Requests/
-      LoginRequest.cs
-      RefreshTokenRequest.cs
     Responses/
-      LoginResponse.cs
-      RefreshTokenResponse.cs
-      IntrospectTokenResponse.cs
+    Events/
 
   Authr.API/
     Authr.API.csproj
     Controllers/
-      AuthController.cs
-      UsersController.cs
-      ClientsController.cs
-      HealthController.cs
     Middleware/
-      ExceptionHandlingMiddleware.cs
-      CorrelationMiddleware.cs
-      TenantResolutionMiddleware.cs
     Extensions/
-      ServiceCollectionExtensions.cs
-      ApplicationBuilderExtensions.cs
     OpenApi/
-      SwaggerConfiguration.cs
-    Program.cs
-    appsettings.json
-    appsettings.Development.json
+    HealthChecks/
+    Configuration/
 ```
 
 ## Servis sinirlari
@@ -198,6 +234,45 @@ Su alanlari bu servise koymamak daha dogru olur:
 - ana uygulamanin genel user profile CRUD ekranlari
 
 Yani `Authr.User`, sistem kullanicisi ve kimlik/erisim baglaminda ele alinmalidir; uygulama profili ile karistirilmamalidir.
+
+## Application klasorleme standardi
+
+Bu servis icin `Application` katmaninda standart su olmalidir:
+
+- Aggregate altinda `Services/`, `Commands/`, `Queries/` klasorleri bulunur
+- Her command/query kendi alt klasorunde tutulur
+- O alt klasorde su dosyalar birlikte yer alir:
+  - `Command` veya `Query`
+  - `Handler`
+  - `RequestDto`
+  - `ResponseDto`
+  - `Validator`
+
+Ornek:
+
+```text
+Aggregates/
+  Users/
+    Services/
+      UserPermissionResolverService.cs
+      IUserPermissionResolverService.cs
+    Commands/
+      RegisterUser/
+        RegisterUserCommand.cs
+        RegisterUserCommandHandler.cs
+        RegisterUserRequestDto.cs
+        RegisterUserResponseDto.cs
+        RegisterUserCommandValidator.cs
+```
+
+Bu ayni mantik diger katmanlarda da surdurulmelidir:
+
+- `Domain`: aggregate altinda `Entities`, `Events`, `ValueObjects`
+- `Infrastructure`: `Persistence`, `Security`, `Integrations`, `DependencyInjection`
+- `API`: `Controllers`, `Middleware`, `OpenApi`, `HealthChecks`, `Configuration`
+- `Contracts`: `Requests`, `Responses`, `Events`
+
+Tek tek sinif isimleri siralamak yerine, sorumluluk bazli klasorler gosterilmelidir. OksFramework'te zaten var olan ortak altyapi dosyalari ornek diye tekrar sayilmamalidir.
 
 ## API siniri ve gateway notu
 

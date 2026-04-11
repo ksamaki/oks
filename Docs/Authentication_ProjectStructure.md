@@ -4,7 +4,7 @@
 
 Bu dokuman, yeni bir projede `Auth` / `Authr` bounded context'ini CQRS, DDD ve AggregateRoot odakli bir klasorleme ile baslatmak icin ornek bir yapi sunar. Hedef; OKS'nin repository, unit of work, validation, logging, caching ve web pipeline yetenekleriyle uyumlu, buyudukce bozulmayan bir iskelet vermektir.
 
-> Mimari not: `Auth` / `Authr` icin ayri container ve ayri database planlamak dogru bir tercih. Authentication, diger bounded context'lerden operasyonel olarak ayrismaya en uygun alanlardan biridir. OKS tarafinda da bu ayrim, ayri `DbContext`, ayri migration seti, ayri deployment ve gerekirse ayri cache/policy konfigrasyonu ile rahatca desteklenir.
+> Mimari not: `Auth` / `Authr`, ihtiyaca gore ayni container icinde modul olarak da ayri container/ayri deployment olarak da kullanilabilir. OKS tarafinda bu esneklik; ayri `DbContext`, ayri migration seti, ayri deployment ve gerekirse ayri cache/policy konfigrasyonu ile desteklenir.
 
 ## Hedeflenen katmanlar
 
@@ -22,45 +22,27 @@ src/
     Authr.Domain.csproj
     Aggregates/
       Users/
-        User.cs
-        UserSession.cs
-        UserClaim.cs
-        UserDomainEvents.cs
+        Entities/
+        Events/
+        ValueObjects/
       Roles/
-        Role.cs
-        RolePermission.cs
+        Entities/
+        Events/
+        ValueObjects/
       Clients/
-        Client.cs
+        Entities/
+        Events/
+        ValueObjects/
       RefreshTokens/
-        RefreshToken.cs
+        Entities/
+        Events/
+        ValueObjects/
     Common/
-      AggregateRoot.cs
-      Entity.cs
-      ValueObject.cs
-      IHasDomainEvents.cs
     Enums/
-      ClientType.cs
-      GrantType.cs
-      PermissionScope.cs
-      UserStatus.cs
     ValueObjects/
-      EmailAddress.cs
-      PasswordHash.cs
-      ClientSecretHash.cs
-      IpAddress.cs
-      DeviceFingerprint.cs
     Events/
-      UserLoggedInDomainEvent.cs
-      RefreshTokenRotatedDomainEvent.cs
-      UserLockedOutDomainEvent.cs
     Services/
-      IPasswordPolicy.cs
-      IClientPolicy.cs
     Repositories/
-      IUserRepository.cs
-      IRoleRepository.cs
-      IClientRepository.cs
-      IRefreshTokenRepository.cs
 
   Authr.Application/
     Authr.Application.csproj
@@ -81,167 +63,153 @@ src/
       TransactionBehavior.cs
     Aggregates/
       Users/
+        Services/
+          UserPermissionResolverService.cs
+          IUserPermissionResolverService.cs
         Commands/
           RegisterUser/
             RegisterUserCommand.cs
             RegisterUserCommandHandler.cs
-            RegisterUserCommandValidator.cs
             RegisterUserRequestDto.cs
             RegisterUserResponseDto.cs
+            RegisterUserCommandValidator.cs
           ChangePassword/
             ChangePasswordCommand.cs
             ChangePasswordCommandHandler.cs
+            ChangePasswordRequestDto.cs
+            ChangePasswordResponseDto.cs
             ChangePasswordCommandValidator.cs
           LockUser/
             LockUserCommand.cs
             LockUserCommandHandler.cs
+            LockUserRequestDto.cs
+            LockUserResponseDto.cs
+            LockUserCommandValidator.cs
         Queries/
           GetUserById/
             GetUserByIdQuery.cs
             GetUserByIdQueryHandler.cs
+            GetUserByIdRequestDto.cs
             GetUserByIdResponseDto.cs
+            GetUserByIdQueryValidator.cs
           GetUserPermissions/
             GetUserPermissionsQuery.cs
             GetUserPermissionsQueryHandler.cs
+            GetUserPermissionsRequestDto.cs
             GetUserPermissionsResponseDto.cs
-        Dtos/
-          UserDto.cs
-          UserClaimDto.cs
-          UserSessionDto.cs
-        Interfaces/
-          IUserReadService.cs
-        Services/
-          UserPermissionResolver.cs
+            GetUserPermissionsQueryValidator.cs
       Roles/
+        Services/
+          RolePermissionMapperService.cs
+          IRolePermissionMapperService.cs
         Commands/
           CreateRole/
             CreateRoleCommand.cs
             CreateRoleCommandHandler.cs
+            CreateRoleRequestDto.cs
+            CreateRoleResponseDto.cs
             CreateRoleCommandValidator.cs
         Queries/
           GetRoleById/
             GetRoleByIdQuery.cs
             GetRoleByIdQueryHandler.cs
+            GetRoleByIdRequestDto.cs
             GetRoleByIdResponseDto.cs
-        Dtos/
-          RoleDto.cs
-        Interfaces/
-          IRoleReadService.cs
-        Services/
-          RolePermissionMapper.cs
+            GetRoleByIdQueryValidator.cs
       Clients/
+        Services/
+          ClientSecretService.cs
+          IClientSecretService.cs
         Commands/
           CreateClient/
             CreateClientCommand.cs
             CreateClientCommandHandler.cs
+            CreateClientRequestDto.cs
+            CreateClientResponseDto.cs
             CreateClientCommandValidator.cs
         Queries/
           GetClientById/
             GetClientByIdQuery.cs
             GetClientByIdQueryHandler.cs
+            GetClientByIdRequestDto.cs
             GetClientByIdResponseDto.cs
-        Dtos/
-          ClientDto.cs
-        Interfaces/
-          IClientReadService.cs
-        Services/
-          ClientSecretService.cs
+            GetClientByIdQueryValidator.cs
       Sessions/
         Commands/
           RevokeSession/
             RevokeSessionCommand.cs
             RevokeSessionCommandHandler.cs
+            RevokeSessionRequestDto.cs
+            RevokeSessionResponseDto.cs
             RevokeSessionCommandValidator.cs
         Queries/
           GetActiveSessions/
             GetActiveSessionsQuery.cs
             GetActiveSessionsQueryHandler.cs
+            GetActiveSessionsRequestDto.cs
             GetActiveSessionsResponseDto.cs
+            GetActiveSessionsQueryValidator.cs
       Auth/
+        Services/
+          AuthenticationOrchestratorService.cs
+          IAuthenticationOrchestratorService.cs
         Commands/
           Login/
             LoginCommand.cs
             LoginCommandHandler.cs
-            LoginCommandValidator.cs
             LoginRequestDto.cs
             LoginResponseDto.cs
+            LoginCommandValidator.cs
           RefreshToken/
             RefreshTokenCommand.cs
             RefreshTokenCommandHandler.cs
-            RefreshTokenCommandValidator.cs
+            RefreshTokenRequestDto.cs
             RefreshTokenResponseDto.cs
+            RefreshTokenCommandValidator.cs
           Logout/
             LogoutCommand.cs
             LogoutCommandHandler.cs
+            LogoutRequestDto.cs
+            LogoutResponseDto.cs
+            LogoutCommandValidator.cs
         Queries/
           IntrospectToken/
             IntrospectTokenQuery.cs
             IntrospectTokenQueryHandler.cs
+            IntrospectTokenRequestDto.cs
             IntrospectTokenResponseDto.cs
-        Dtos/
-          AccessTokenDto.cs
-          RefreshTokenDto.cs
-        Interfaces/
-          IAuthenticationService.cs
-        Services/
-          AuthenticationOrchestrator.cs
+            IntrospectTokenQueryValidator.cs
 
   Authr.Infrastructure/
     Authr.Infrastructure.csproj
     Persistence/
-      AuthrDbContext.cs
+      Context/
       Configurations/
-        UserConfiguration.cs
-        RoleConfiguration.cs
-        ClientConfiguration.cs
-        RefreshTokenConfiguration.cs
       Repositories/
-        UserRepository.cs
-        RoleRepository.cs
-        ClientRepository.cs
-        RefreshTokenRepository.cs
       Migrations/
       Seed/
-        AuthrSeeder.cs
       UnitOfWork/
-        AuthUnitOfWork.cs
     Identity/
-      PasswordHasher.cs
-      SecretHasher.cs
-      JwtTokenGenerator.cs
-      PermissionClaimsFactory.cs
     Integrations/
       Caching/
-        UserPermissionCache.cs
       Logging/
-        AuthAuditLogger.cs
       Messaging/
-        DomainEventPublisher.cs
       Time/
-        SystemDateTimeProvider.cs
+      Security/
     DependencyInjection/
-      ServiceCollectionExtensions.cs
 
   Authr.API/
     Authr.API.csproj
     Controllers/
-      AuthController.cs
-      UsersController.cs
-      RolesController.cs
-      ClientsController.cs
     Middleware/
-      CorrelationMiddleware.cs
-      ExceptionHandlingMiddleware.cs
-      TenantResolutionMiddleware.cs
     Filters/
-      ApiExceptionFilter.cs
     Extensions/
-      ServiceCollectionExtensions.cs
-      ApplicationBuilderExtensions.cs
     Contracts/
       Requests/
       Responses/
-    Program.cs
+    OpenApi/
+    HealthChecks/
+    Configuration/
 
 tests/
   Authr.Domain.Tests/
@@ -257,15 +225,16 @@ tests/
 - AggregateRoot'lar burada yasar. `User`, `Role`, `Client` gibi kok nesneler kendi invariant'larini korur.
 - `Domain` katmani `Infrastructure` veya `API` bilmez.
 - `IReadRepository` / `IWriteRepository` yerine, aggregate odakli repository kontratlari tanimlamak daha temiz olur.
-Ornek: `IUserRepository`, `IClientRepository`
 - Enum, value object ve domain event'ler dogrudan aggregate davranisini desteklemelidir.
 - Login gibi saf orkestrasyon use-case'leri burada degil `Application` katmaninda olmalidir.
+- OksFramework'te zaten var olan ortak base tipler veya altyapi kontratlari, burada gereksiz ornek dosya listesi olarak tekrar edilmemelidir.
 
 ### 2) Application
 
 - CQRS handler'lari burada olur.
 - Her AggregateRoot icin ayri klasor acmak, use-case'leri is alanina gore toplar.
-- `Commands`, `Queries`, `Dtos`, `Validators`, `Interfaces`, `Services` alt klasorleri, sizin istediginiz standart olarak uygundur.
+- `Commands` ve `Queries` altinda her use-case klasoru kendi `Command/Query`, `Handler`, `RequestDto`, `ResponseDto`, `Validator` dosyalarini birlikte tutmalidir.
+- Aggregate seviyesinde tekrar kullanilan application servisleri `Services` klasorunde tutulmalidir.
 - Handler'lar domain davranisini aggregate uzerinden calistirir; teknik detaylara inmez.
 - Cross-cutting davranislar MediatR pipeline benzeri `Behaviors` klasorunde tutulabilir.
 - Validation burada yapilir; persistence tarafina gecmeden request dogrulanir.
@@ -276,6 +245,7 @@ Ornek: `IUserRepository`, `IClientRepository`
 - JWT token ureteci, password/secret hasher, cache adapter, event publisher gibi teknik servisler burada yasar.
 - OKS kullaniliyorsa bu katman `Oks.Persistence.EfCore`, `Oks.Logging`, `Oks.Caching` gibi modullerle compose edilir.
 - Ayrica `AuthrDbContext` bu bounded context icin ayri connection string ile calismalidir.
+- Ayni mantik burada da gecerlidir: tek tek sinif isimleri yerine `Context`, `Configurations`, `Repositories`, `Integrations`, `DependencyInjection` gibi sorumluluk bazli klasorleme tercih edilmelidir.
 
 ### 4) API
 
@@ -283,10 +253,11 @@ Ornek: `IUserRepository`, `IClientRepository`
 - API katmani sadece request'i `Application` use-case'lerine yonlendirir.
 - Exception handling, correlation, auth middleware, rate limit, validation ve result wrapping bu katmanda compose edilir.
 - `Program.cs` icinde yalnizca composition olmalidir; is kurali olmamalidir.
+- API tarafinda da `Controllers`, `Middleware`, `Filters`, `OpenApi`, `HealthChecks`, `Configuration` gibi delivery odakli klasorleme tercih edilmelidir.
 
 ## AggregateRoot bazli klasorleme notu
 
-Sizin istediginiz gibi `Application` icinde her AggregateRoot altinda `Commands`, `Queries`, `Dtos`, `Validators`, `Interfaces`, `Services` tutmak iyi bir secimdir. Bu, ozellikle buyuyen auth alanlarinda teknik degil is odakli gezinme saglar.
+Sizin istediginiz gibi `Application` icinde her AggregateRoot altinda `Services`, `Commands` ve `Queries` tutmak iyi bir secimdir. Bu yapida her use-case klasoru kendi `RequestDto`, `ResponseDto`, `Handler` ve `Validator` dosyalariyla birlikte durur. Bu, ozellikle buyuyen auth alanlarinda teknik degil is odakli gezinme saglar.
 
 Ancak su dengeyi koruyun:
 
@@ -312,9 +283,14 @@ Onerilen sinir:
 - `Application`: mumkunse sadece abstraction bilsin.
 - `Infrastructure` ve `API`: OKS modullerini burada compose etsin.
 
-## Auth/Authr icin ayri container ve DB notlari
+## Auth/Authr icin deployment secenekleri
 
-Bu bounded context icin ayri container ve ayri DB planliyorsaniz su yapilar eklenmeli:
+Bu bounded context iki sekilde kullanilabilir:
+
+- ayni container icinde modul olarak
+- ayri container ve ayri deployment olarak
+
+Ayri container ve ayri DB planliyorsaniz su yapilar eklenmeli:
 
 - Ayri `AuthrDbContext`
 - Ayri migration history
@@ -331,6 +307,14 @@ Bu ayri deployment modeli su avantajlari verir:
 - Guvenlik kurallari ve secret rotasyonu ayrisir.
 - Login/refresh trafigi, is domain'i DB'sini etkilemez.
 - Ileride token/introspection ya da OpenIddict sunucusu ayri buyutulebilir.
+
+Ayni container icinde kullanilacaksa da su sinir korunmalidir:
+
+- ayri `AuthrDbContext`
+- ayri migration seti
+- ayri configuration section
+- ayri application klasorleme ve use-case siniri
+- auth concern'lerinin diger is modullerine sizmamasi
 
 ## Bu yapiya eklenmesi gereken hususlar
 

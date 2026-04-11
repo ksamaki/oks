@@ -51,6 +51,8 @@ MyApp/
 
 ## Onerilen library yapisi
 
+Bu rehberde dosya isimleri tek tek exhaustive bicimde listelenmez. Amaç, OksFramework'te zaten var olan ortak altyapi tiplerini tekrar saymak degil; yeni uygulama acarken hangi klasorleme mantigi ile ilerlenmesi gerektigini gostermektir.
+
 ### 1) `MyApp.Domain`
 
 Bu katman is kurallarinin kalbidir.
@@ -72,21 +74,19 @@ Onerilen yapi:
 MyApp.Domain/
   Aggregates/
     Orders/
-      Order.cs
-      OrderItem.cs
+      Entities/
+      Events/
+      ValueObjects/
     Customers/
-      Customer.cs
+      Entities/
+      Events/
+      ValueObjects/
   Common/
-    Entity.cs
-    AggregateRoot.cs
-    ValueObject.cs
   Enums/
   Events/
   Policies/
   Specifications/
   Repositories/
-    IOrderRepository.cs
-    ICustomerRepository.cs
 ```
 
 Kurallar:
@@ -95,6 +95,8 @@ Kurallar:
 - teknik servisleri bilmez
 - framework bagimliligini minimumda tutar
 - aggregate root kendi invariant'larini korur
+- aggregate icinde `Entities`, `ValueObjects`, `Events` gibi alt klasorler ayni mantikla birlikte gruplanabilir
+- OksFramework'te zaten tanimli ortak base tipleri tekrar orneklemek yerine, proje kendi domain alanina odaklanmalidir
 
 ### 2) `MyApp.Application`
 
@@ -124,25 +126,29 @@ MyApp.Application/
     Models/
   Aggregates/
     Orders/
+      Services/
+        OrderPricingService.cs
+        IOrderPricingService.cs
       Commands/
         CreateOrder/
           CreateOrderCommand.cs
           CreateOrderCommandHandler.cs
+          CreateOrderRequestDto.cs
+          CreateOrderResponseDto.cs
           CreateOrderCommandValidator.cs
       Queries/
         GetOrderById/
           GetOrderByIdQuery.cs
           GetOrderByIdQueryHandler.cs
-      Dtos/
-        OrderDto.cs
-      Interfaces/
-      Services/
+          GetOrderByIdRequestDto.cs
+          GetOrderByIdResponseDto.cs
+          GetOrderByIdQueryValidator.cs
     Customers/
+      Services/
+        CustomerProfileService.cs
+        ICustomerProfileService.cs
       Commands/
       Queries/
-      Dtos/
-      Interfaces/
-      Services/
   Abstractions/
     Persistence/
     Time/
@@ -156,6 +162,8 @@ Kurallar:
 - handler'lar is akisini koordine eder
 - validation burada yapilir
 - domain davranisi aggregate uzerinden calistirilir
+- her use-case klasoru kendi `Command/Query`, `Handler`, `RequestDto`, `ResponseDto` ve `Validator` dosyalarini birlikte tutar
+- aggregate seviyesinde tekrar kullanilan servisler `Services/` altinda tutulur
 
 ### 3) `MyApp.Infrastructure`
 
@@ -178,7 +186,7 @@ Onerilen yapi:
 ```text
 MyApp.Infrastructure/
   Persistence/
-    MyAppDbContext.cs
+    Context/
     Configurations/
     Repositories/
     UnitOfWork/
@@ -189,8 +197,8 @@ MyApp.Infrastructure/
     Logging/
     Messaging/
     Time/
+    Security/
   DependencyInjection/
-    ServiceCollectionExtensions.cs
 ```
 
 Kurallar:
@@ -198,6 +206,8 @@ Kurallar:
 - `Domain` ve `Application` kontratlarini implement eder
 - OKS modulleri burada compose edilebilir
 - connection string, provider ve repository secimleri burada kalir
+- `Persistence`, `Integrations` ve `DependencyInjection` altinda da tek dosya odakli degil, sorumluluk odakli klasorleme tercih edilmelidir
+- OksFramework'te zaten mevcut olan repository/uow/caching/logging yapilarini yeniden tarif eden gereksiz ornek dosya isimleri verilmemelidir
 
 ### 4) `MyApp.API`
 
@@ -223,9 +233,7 @@ MyApp.API/
   Extensions/
   OpenApi/
   HealthChecks/
-  Program.cs
-  appsettings.json
-  appsettings.Development.json
+  Configuration/
 ```
 
 Kurallar:
@@ -233,6 +241,7 @@ Kurallar:
 - is kurali burada yazilmaz
 - yalnizca request alir, use-case'e yonlendirir
 - validation, exception handling, auth, rate limit, result wrapping burada compose edilir
+- controller, middleware ve filter klasorlerinde de ayni mantik gecerlidir; delivery concern'leri birlikte gruplanir, altyapiyi tekrar eden ornek sinif listeleriyle sisirilmez
 
 ### 5) `MyApp.Contracts`
 
@@ -259,13 +268,15 @@ OKS kullanan yeni projelerde varsayilan tercih su olmali:
 
 - `Domain` icinde aggregate / is alani bazli klasorleme
 - `Application` icinde aggregate bazli klasorleme
-- `Infrastructure` icinde teknik klasorleme
+- `Infrastructure` icinde sorumluluk bazli teknik klasorleme
 - `API` icinde delivery mekanizmasi bazli klasorleme
 
 Yani:
 
 - `Orders`, `Customers`, `Invoices` gibi is alanlari `Domain` ve `Application` icinde oncelikli olur
 - `Persistence`, `Caching`, `Logging`, `Messaging` gibi teknik alanlar `Infrastructure` icinde oncelikli olur
+- `CreateOrder`, `GetOrderById` gibi use-case dosyalari kendi alt klasorunde birlikte tutulur
+- `Controllers`, `Middleware`, `Filters`, `OpenApi`, `HealthChecks` gibi delivery alanlari `API` icinde birlikte tutulur
 
 Bu denge en okunabilir yapidir.
 
@@ -372,7 +383,9 @@ Varsayilan baslangic yapisi olarak sunu oneriyorum:
 4. `API`
 5. opsiyonel `Contracts`
 6. aggregate bazli `Application` klasorleme
-7. teknik bazli `Infrastructure` klasorleme
-8. OKS entegrasyonunu yalnizca `Infrastructure` ve `API` katmaninda yapmak
+7. use-case bazli alt klasorlerde `Command/Query`, `Handler`, `RequestDto`, `ResponseDto`, `Validator` dosyalarini birlikte tutmak
+8. aggregate seviyesinde ortak application servislerini `Services/` altinda toplamak
+9. teknik bazli `Infrastructure` klasorleme
+10. OKS entegrasyonunu yalnizca `Infrastructure` ve `API` katmaninda yapmak
 
 Bu yapi, yeni baslayan ekipler icin yeterince net; buyuyen projeler icin de yeterince esnektir.
