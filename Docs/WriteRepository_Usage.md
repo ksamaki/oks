@@ -2,9 +2,11 @@
 
 [Write Repository & Unit of Work - Description](WriteRepository_Description.md) | [Ana sayfa](../README.md)
 
-Aşağıdaki adımları kopyalayarak yazma repository katmanını transaction filtreleriyle birlikte devreye alabilirsin.
+Asagidaki adimlari kopyalayarak yazma repository katmanini transaction filtreleriyle birlikte devreye alabilirsin.
 
-## 1) Proje referanslarını ekle (`.csproj`)
+> Not: `IWriteRepository<TEntity, TKey>` zaten `IReadRepository<TEntity, TKey>` kontratini da icerir. Bir command handler hem veri okuyup hem guncelleme yapiyorsa genellikle yalnizca `IWriteRepository` enjekte etmesi yeterlidir.
+
+## 1) Proje referanslarini ekle (`.csproj`)
 ```xml
 <ItemGroup>
   <ProjectReference Include="..\\src\\Oks\\Oks.Domain\\Oks.Domain.csproj" />
@@ -17,10 +19,10 @@ Aşağıdaki adımları kopyalayarak yazma repository katmanını transaction fi
 ```
 
 ## 2) DbContext ve audit
-Audit için `OksDbContextBase` kullanılır; kullanıcı bilgisi `IOksUserProvider` üzerinden alınır.
+Audit icin `OksDbContextBase` kullanilir; kullanici bilgisi `IOksUserProvider` uzerinden alinir.
 
 ## 3) DI ve pipeline kurulumu
-> Not: `Oks.Web` abstraction-only kuralı nedeniyle `AddOksUnitOfWork()` tek başına persistence concrete implementasyonu eklemez. Örnekteki `AddOksEfCore<AppDbContext>()` (veya alternatif persistence kaydı) zorunludur.
+> Not: `Oks.Web` abstraction-only kurali nedeniyle `AddOksUnitOfWork()` tek basina persistence concrete implementasyonu eklemez. Ornekteki `AddOksEfCore<AppDbContext>()` (veya alternatif persistence kaydi) zorunludur.
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -57,14 +59,44 @@ api.MapPost("/products", async (Product dto, IWriteRepository<Product, Guid> wri
 app.Run();
 ```
 
-## 4) Skip transaction örneği (Minimal API)
+Okuma + yazma yapan bir handler/service ornegi:
+```csharp
+public class AcceptFriendRequestCommandHandler : IRequestHandler<AcceptFriendRequestCommand, bool>
+{
+    private readonly IWriteRepository<Friendship, Guid> _friendshipRepository;
+
+    public AcceptFriendRequestCommandHandler(IWriteRepository<Friendship, Guid> friendshipRepository)
+    {
+        _friendshipRepository = friendshipRepository;
+    }
+
+    public async Task<bool> Handle(AcceptFriendRequestCommand request, CancellationToken cancellationToken)
+    {
+        var friendship = await _friendshipRepository.GetAsync(
+            f => f.Id == request.RequestId && f.FriendUserId == request.ReceiverId,
+            cancellationToken);
+
+        if (friendship is null)
+        {
+            return false;
+        }
+
+        friendship.UpdateStatus(Guid.NewGuid(), true);
+        _friendshipRepository.Update(friendship);
+
+        return true;
+    }
+}
+```
+
+## 4) Skip transaction ornegi (Minimal API)
 ```csharp
 api.MapPost("/products/import", async (BulkImportRequest request, IWriteRepository<Product, Guid> write) =>
 {
     // ... import
-    return Result.Ok("İçe aktarma tamamlandı");
+    return Result.Ok("Ice aktarma tamamlandi");
 })
 .WithMetadata(new OksSkipTransactionAttribute());
 ```
 
-> İpucu: `AddOksUnitOfWork()` aktifken MVC action ve Minimal API endpoint'lerinde başarılı isteklerde commit otomatik denenir. Davranışı endpoint/action bazında kapatmak için `[OksSkipTransaction]` metadata'sını kullanabilirsin.
+> Ipucu: `AddOksUnitOfWork()` aktifken MVC action ve Minimal API endpoint'lerinde basarili isteklerde commit otomatik denenir. Davranisi endpoint/action bazinda kapatmak icin `[OksSkipTransaction]` metadata'sini kullanabilirsin.
