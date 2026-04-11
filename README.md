@@ -17,6 +17,9 @@ Her yetenek için iki doküman bulunur: bir **Description** dosyası kavramsal d
 - **Redis (Oks.Caching distributed provider profili)**: [Redis_Description.md](Docs/Redis_Description.md)
 - **Real-Time (SignalR + JWT connection contracts)**: [RealTimeSignalR_Description.md](Docs/RealTimeSignalR_Description.md)
 - **Authentication (JWT default + optional OpenIddict + EF Core persistence)**: [Authentication_Description.md](Docs/Authentication_Description.md)
+- **Authentication Project Structure (CQRS + DDD + AggregateRoot)**: [Authentication_ProjectStructure.md](Docs/Authentication_ProjectStructure.md)
+- **Authentication Standalone Service Structure**: [Authentication_StandaloneServiceStructure.md](Docs/Authentication_StandaloneServiceStructure.md)
+- **Application Project Structure Guide**: [Application_ProjectStructure_Guide.md](Docs/Application_ProjectStructure_Guide.md)
 
 Her Description dokümanında ilgili Usage sayfasına bağlantıyı bulabilirsin.
 
