@@ -2,7 +2,7 @@
 
 [Ana sayfa](../README.md)
 
-Bu dokuman, OKS kullanan ekiplerin yeni bir uygulamaya baslarken hangi library ve klasor yapisini kurmasi gerektigini netlestirmek icin hazirlanmistir. Amaç; her projede yeniden ayni tartismalari yapmadan, tutarli ve buyuyebilir bir baslangic iskeleti vermektir.
+Bu dokuman, OKS kullanan ekiplerin yeni bir uygulamaya baslarken hangi library ve klasor yapisini kurmasi gerektigini netlestirmek icin hazirlanmistir. Amac; her projede yeniden ayni tartismalari yapmadan, tutarli ve buyuyebilir bir baslangic iskeleti vermektir.
 
 Bu rehber:
 
@@ -10,18 +10,6 @@ Bu rehber:
 - CQRS + DDD + Clean Architecture uyumlu dusunur
 - OKS'nin validation, repository, unit of work, logging, cache ve web katmani yeteneklerini dikkate alir
 - hem monolith hem de bounded-context bazli ayristirilmis yapiya uyarlanabilir
-
-## Ne zaman bu yapiyi kullanmali?
-
-Su tip projelerde bu yapi dogrudan uygundur:
-
-- orta ve buyuk olcekli line-of-business uygulamalari
-- birden fazla module / bounded context iceren sistemler
-- API-first backend projeleri
-- CQRS veya use-case odakli servisler
-- ileride moduler monolith veya mikroservise evrilebilecek uygulamalar
-
-Kucuk CRUD uygulamalarda bunun daha sade bir varyanti tercih edilebilir; ama yine de katman sinirlari korunmalidir.
 
 ## Onerilen ust seviye yapi
 
@@ -51,24 +39,7 @@ MyApp/
 
 ## Onerilen library yapisi
 
-Bu rehberde dosya isimleri tek tek exhaustive bicimde listelenmez. Amaç, OksFramework'te zaten var olan ortak altyapi tiplerini tekrar saymak degil; yeni uygulama acarken hangi klasorleme mantigi ile ilerlenmesi gerektigini gostermektir.
-
 ### 1) `MyApp.Domain`
-
-Bu katman is kurallarinin kalbidir.
-
-Icerik:
-
-- entity
-- aggregate root
-- enum
-- value object
-- domain event
-- domain service
-- repository kontratlari
-- policy / specification
-
-Onerilen yapi:
 
 ```text
 MyApp.Domain/
@@ -92,63 +63,42 @@ MyApp.Domain/
 Kurallar:
 
 - `Domain`, `Infrastructure` bilmez
-- teknik servisleri bilmez
-- framework bagimliligini minimumda tutar
-- aggregate root kendi invariant'larini korur
-- aggregate icinde `Entities`, `ValueObjects`, `Events` gibi alt klasorler ayni mantikla birlikte gruplanabilir
-- OksFramework'te zaten tanimli ortak base tipleri tekrar orneklemek yerine, proje kendi domain alanina odaklanmalidir
-- bu rehberde `Domain` katmani anemic model yaklasimi ile ele alinir; entity icinde constructor ve davranis metotlari bulunmaz
-- entity uzerindeki is kurallari ve davranislar `Application` altinda ilgili aggregate'in `Services/` klasorunde toplanir
+- entity icinde constructor ve davranis methodu bulunmaz
+- entity davranislari `Application` katmanindaki servisler tarafindan yonetilir
+- OksFramework'te zaten var olan ortak altyapi tipleri burada tekrar edilmez
 
 ### 2) `MyApp.Application`
-
-Bu katman use-case katmanidir. CQRS handler'lari burada yer alir.
-
-Icerik:
-
-- commands
-- queries
-- handlers
-- DTO
-- validators
-- application service
-- interface / port
-- behavior / pipeline
-
-Onerilen yapi:
 
 ```text
 MyApp.Application/
   Common/
     Behaviors/
-      ValidationBehavior.cs
-      LoggingBehavior.cs
-      TransactionBehavior.cs
     Exceptions/
     Models/
   Aggregates/
     Orders/
       Services/
-        OrderPricingService.cs
-        IOrderPricingService.cs
+        OrderAppService.cs
+        IOrderAppService.cs
+        OrderDomainService.cs
+        IOrderDomainService.cs
       Commands/
         CreateOrder/
           CreateOrderCommand.cs
           CreateOrderCommandHandler.cs
-          CreateOrderRequestDto.cs
-          CreateOrderResponseDto.cs
           CreateOrderCommandValidator.cs
       Queries/
         GetOrderById/
           GetOrderByIdQuery.cs
           GetOrderByIdQueryHandler.cs
-          GetOrderByIdRequestDto.cs
-          GetOrderByIdResponseDto.cs
+          GetOrderByIdDto.cs
           GetOrderByIdQueryValidator.cs
     Customers/
       Services/
-        CustomerProfileService.cs
-        ICustomerProfileService.cs
+        CustomerAppService.cs
+        ICustomerAppService.cs
+        CustomerDomainService.cs
+        ICustomerDomainService.cs
       Commands/
       Queries/
   Abstractions/
@@ -160,76 +110,38 @@ MyApp.Application/
 
 Kurallar:
 
-- application katmani teknik detay implement etmez
-- handler'lar is akisini koordine eder
-- validation burada yapilir
-- domain davranisi aggregate uzerinden calistirilir
-- her use-case klasoru kendi `Command/Query`, `Handler`, `RequestDto`, `ResponseDto` ve `Validator` dosyalarini birlikte tutar
-- aggregate seviyesinde tekrar kullanilan servisler `Services/` altinda tutulur
-- `Services/` altinda iki ayrim net olmalidir:
+- command kendi request modelidir
+- query kendi request modelidir
+- command tarafinda ekstra DTO uretilmez
+- query tarafinda gerekiyorsa tek `Dto` response modeli tutulur
+- `Services/` altinda:
+  - `AppService`: akisi ve orkestrasyonu yonetir
   - `DomainService`: is kuralini uygular
-  - `AppService`: use-case akislarini ve orkestrasyonu yonetir
-- `AppService` ve `DomainService` ornekleri tek basina birakilmamali; yanlarinda interface karsiliklari da bulunmalidir
-- entity icinde constructor ve method olmayacagi icin, davranislar ilgili feature altindaki `AppService` veya `DomainService` siniflarina tasinmalidir
 
-Ornek ayrim:
+Ornek:
 
-```csharp
-public async Task AddFriendAsync(Guid userId, Guid friendUserId)
-{
-    var user = await _repo.GetByIdAsync(userId);
-    var friend = await _repo.GetByIdAsync(friendUserId);
-
-    _domainService.AddFriend(user, friend);
-
-    await _repo.UpdateAsync(user);
-}
+```text
+Aggregates/
+  Users/
+    Services/
+      UserAppService.cs
+      IUserAppService.cs
+      UserDomainService.cs
+      IUserDomainService.cs
+    Commands/
+      RegisterUser/
+        RegisterUserCommand.cs
+        RegisterUserCommandHandler.cs
+        RegisterUserCommandValidator.cs
+    Queries/
+      GetUserById/
+        GetUserByIdQuery.cs
+        GetUserByIdQueryHandler.cs
+        GetUserByIdDto.cs
+        GetUserByIdQueryValidator.cs
 ```
-
-Bu `AppService` akisinda soyledigi sey:
-
-- veriyi al
-- domain kuralini calistir
-- sonucu kaydet
-
-```csharp
-public void AddFriend(User user, User friend)
-{
-    if (user.Id == friend.Id)
-        throw new InvalidOperationException(...);
-
-    if (!friend.IsActive)
-        throw new InvalidOperationException(...);
-
-    if (user.HasFriend(friend.Id))
-        throw new InvalidOperationException(...);
-
-    user.AddFriendInternal(friend.Id);
-}
-```
-
-Bu `DomainService` tarafinda soyledigi sey:
-
-- bu isin kurali budur
-- hangi durumda izin var / hangi durumda yok
 
 ### 3) `MyApp.Infrastructure`
-
-Bu katman teknik implementasyon katmanidir.
-
-Icerik:
-
-- EF Core DbContext
-- repository implementasyonlari
-- unit of work
-- migration
-- seed
-- cache adapter
-- log adapter
-- external servis adapter'lari
-- background job implementasyonlari
-
-Onerilen yapi:
 
 ```text
 MyApp.Infrastructure/
@@ -252,26 +164,10 @@ MyApp.Infrastructure/
 Kurallar:
 
 - `Domain` ve `Application` kontratlarini implement eder
-- OKS modulleri burada compose edilebilir
-- connection string, provider ve repository secimleri burada kalir
-- `Persistence`, `Integrations` ve `DependencyInjection` altinda da tek dosya odakli degil, sorumluluk odakli klasorleme tercih edilmelidir
-- OksFramework'te zaten mevcut olan repository/uow/caching/logging yapilarini yeniden tarif eden gereksiz ornek dosya isimleri verilmemelidir
+- OKS modulleri burada compose edilir
+- sorumluluk bazli klasorleme tercih edilir
 
 ### 4) `MyApp.API`
-
-Bu katman uygulamanin disa acilan katmanidir.
-
-Icerik:
-
-- controller
-- middleware
-- filter
-- endpoint mapping
-- OpenAPI / Swagger
-- appsettings
-- startup composition
-
-Onerilen yapi:
 
 ```text
 MyApp.API/
@@ -287,21 +183,10 @@ MyApp.API/
 Kurallar:
 
 - is kurali burada yazilmaz
-- yalnizca request alir, use-case'e yonlendirir
+- sadece request alir ve use-case'e yonlendirir
 - validation, exception handling, auth, rate limit, result wrapping burada compose edilir
-- controller, middleware ve filter klasorlerinde de ayni mantik gecerlidir; delivery concern'leri birlikte gruplanir, altyapiyi tekrar eden ornek sinif listeleriyle sisirilmez
 
 ### 5) `MyApp.Contracts`
-
-Bu katman opsiyoneldir ama faydalidir.
-
-Ne zaman gerekir:
-
-- baska servislerle request/response modeli paylasilacaksa
-- internal SDK veya client package uretilecekse
-- HTTP kontratlari application DTO'larindan ayri tutulmak isteniyorsa
-
-Onerilen yapi:
 
 ```text
 MyApp.Contracts/
@@ -309,117 +194,6 @@ MyApp.Contracts/
   Responses/
   Events/
 ```
-
-## Klasorleme mantigi: teknik mi is alani mi?
-
-OKS kullanan yeni projelerde varsayilan tercih su olmali:
-
-- `Domain` icinde aggregate / is alani bazli klasorleme
-- `Application` icinde aggregate bazli klasorleme
-- `Infrastructure` icinde sorumluluk bazli teknik klasorleme
-- `API` icinde delivery mekanizmasi bazli klasorleme
-
-Yani:
-
-- `Orders`, `Customers`, `Invoices` gibi is alanlari `Domain` ve `Application` icinde oncelikli olur
-- `Persistence`, `Caching`, `Logging`, `Messaging` gibi teknik alanlar `Infrastructure` icinde oncelikli olur
-- `CreateOrder`, `GetOrderById` gibi use-case dosyalari kendi alt klasorunde birlikte tutulur
-- `Controllers`, `Middleware`, `Filters`, `OpenApi`, `HealthChecks` gibi delivery alanlari `API` icinde birlikte tutulur
-
-Bu denge en okunabilir yapidir.
-
-## OKS ile minimum entegrasyon noktasi
-
-Yeni bir uygulama baslangicinda en sik gereken OKS entegrasyonlari:
-
-- `AddOksEfCore<MyAppDbContext>()`
-- `AddOksCurrentUserProvider()`
-- `AddOksUnitOfWork()`
-- `AddOksResultWrapping()`
-- `AddOksValidation()`
-- `AddOksRepositoryLogging()`
-
-Ihtiyaca gore:
-
-- `AddOksCaching()`
-- `AddOksRateLimiting()`
-- `AddOksPerformanceLogging()`
-- `AddOksAuthentication()`
-
-Onerilen katman siniri:
-
-- `Domain`: OKS bilmez
-- `Application`: mumkunse abstraction disinda bir sey bilmez
-- `Infrastructure`: repository, cache, logging tarafinda OKS compose eder
-- `API`: web pipeline tarafinda OKS compose eder
-
-## Yeni proje acarken minimum baslangic checklist'i
-
-1. `Domain`, `Application`, `Infrastructure`, `API` projelerini ac
-2. gerekiyorsa `Contracts` projesini ekle
-3. `DbContext` ve migration stratejisini belirle
-4. aggregate root listesini cikar
-5. ilk use-case listesini cikar
-6. validation, unit of work ve exception pipeline'i kur
-7. repository ve logging entegrasyonunu ekle
-8. health check ve integration test iskeletini ekle
-9. `docs/architecture.md` ve `docs/conventions.md` dosyalarini ac
-
-## Bence mutlaka eklenmesi gereken ek alanlar
-
-- `docs/conventions.md`
-Naming, katman kurallari, commit/branch ve code style kararlarini toplamak icin.
-
-- `tests/IntegrationTests/Fixtures/`
-Gercek DB ve container tabanli testler icin.
-
-- `API/HealthChecks/`
-DB, cache, external dependency health kontrolleri icin.
-
-- `Infrastructure/Observability/`
-Log, metric ve tracing adapter'larini toplamak icin.
-
-- `Application/Common/`
-Ortak exception, response modeli ve behavior'lar icin.
-
-## Hangi durumda ayri servis / ayri bounded context dusunulmeli?
-
-Su moduller ayri servis veya en azindan ayri bounded context olmaya adaydir:
-
-- Authentication / Authorization
-- Notification
-- File / Media
-- Payment
-- Realtime / Gateway
-
-Su moduller ise genelde ana uygulama icinde baslayabilir:
-
-- katalog
-- musteri
-- siparis
-- raporlama
-
-## Onerilen ilk isimlendirme standardi
-
-- solution: `MyApp.slnx`
-- domain: `MyApp.Domain`
-- application: `MyApp.Application`
-- infrastructure: `MyApp.Infrastructure`
-- api: `MyApp.API`
-- contracts: `MyApp.Contracts`
-
-Aggregate klasorleri:
-
-- `Orders`
-- `Customers`
-- `Invoices`
-
-Use-case isimleri:
-
-- `CreateOrderCommand`
-- `CancelOrderCommand`
-- `GetOrderByIdQuery`
-- `ListCustomerOrdersQuery`
 
 ## Kisa karar ozeti
 
@@ -430,11 +204,11 @@ Varsayilan baslangic yapisi olarak sunu oneriyorum:
 3. `Infrastructure`
 4. `API`
 5. opsiyonel `Contracts`
-6. aggregate bazli `Application` klasorleme
-7. use-case bazli alt klasorlerde `Command/Query`, `Handler`, `RequestDto`, `ResponseDto`, `Validator` dosyalarini birlikte tutmak
-8. aggregate seviyesinde ortak application servislerini `Services/` altinda toplamak
-9. entity icinde constructor/method tutmamak; davranislari `AppService` ve `DomainService` ayrimiyla `Application` katmanina almak
-10. teknik bazli `Infrastructure` klasorleme
+6. `Application` icinde aggregate bazli klasorleme
+7. `Command` ve `Query` siniflarini request modeli olarak kullanmak
+8. command tarafinda ekstra DTO uretmemek
+9. query tarafinda gerekiyorsa tek `Dto` response modeli kullanmak
+10. aggregate seviyesinde `AppService` ve `DomainService` ayrimi yapmak
 11. OKS entegrasyonunu yalnizca `Infrastructure` ve `API` katmaninda yapmak
 
 Bu yapi, yeni baslayan ekipler icin yeterince net; buyuyen projeler icin de yeterince esnektir.
