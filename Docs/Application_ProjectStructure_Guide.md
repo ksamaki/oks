@@ -97,6 +97,8 @@ Kurallar:
 - aggregate root kendi invariant'larini korur
 - aggregate icinde `Entities`, `ValueObjects`, `Events` gibi alt klasorler ayni mantikla birlikte gruplanabilir
 - OksFramework'te zaten tanimli ortak base tipleri tekrar orneklemek yerine, proje kendi domain alanina odaklanmalidir
+- bu rehberde `Domain` katmani anemic model yaklasimi ile ele alinir; entity icinde constructor ve davranis metotlari bulunmaz
+- entity uzerindeki is kurallari ve davranislar `Application` altinda ilgili aggregate'in `Services/` klasorunde toplanir
 
 ### 2) `MyApp.Application`
 
@@ -164,6 +166,52 @@ Kurallar:
 - domain davranisi aggregate uzerinden calistirilir
 - her use-case klasoru kendi `Command/Query`, `Handler`, `RequestDto`, `ResponseDto` ve `Validator` dosyalarini birlikte tutar
 - aggregate seviyesinde tekrar kullanilan servisler `Services/` altinda tutulur
+- `Services/` altinda iki ayrim net olmalidir:
+  - `DomainService`: is kuralini uygular
+  - `AppService`: use-case akislarini ve orkestrasyonu yonetir
+- `AppService` ve `DomainService` ornekleri tek basina birakilmamali; yanlarinda interface karsiliklari da bulunmalidir
+- entity icinde constructor ve method olmayacagi icin, davranislar ilgili feature altindaki `AppService` veya `DomainService` siniflarina tasinmalidir
+
+Ornek ayrim:
+
+```csharp
+public async Task AddFriendAsync(Guid userId, Guid friendUserId)
+{
+    var user = await _repo.GetByIdAsync(userId);
+    var friend = await _repo.GetByIdAsync(friendUserId);
+
+    _domainService.AddFriend(user, friend);
+
+    await _repo.UpdateAsync(user);
+}
+```
+
+Bu `AppService` akisinda soyledigi sey:
+
+- veriyi al
+- domain kuralini calistir
+- sonucu kaydet
+
+```csharp
+public void AddFriend(User user, User friend)
+{
+    if (user.Id == friend.Id)
+        throw new InvalidOperationException(...);
+
+    if (!friend.IsActive)
+        throw new InvalidOperationException(...);
+
+    if (user.HasFriend(friend.Id))
+        throw new InvalidOperationException(...);
+
+    user.AddFriendInternal(friend.Id);
+}
+```
+
+Bu `DomainService` tarafinda soyledigi sey:
+
+- bu isin kurali budur
+- hangi durumda izin var / hangi durumda yok
 
 ### 3) `MyApp.Infrastructure`
 
@@ -385,7 +433,8 @@ Varsayilan baslangic yapisi olarak sunu oneriyorum:
 6. aggregate bazli `Application` klasorleme
 7. use-case bazli alt klasorlerde `Command/Query`, `Handler`, `RequestDto`, `ResponseDto`, `Validator` dosyalarini birlikte tutmak
 8. aggregate seviyesinde ortak application servislerini `Services/` altinda toplamak
-9. teknik bazli `Infrastructure` klasorleme
-10. OKS entegrasyonunu yalnizca `Infrastructure` ve `API` katmaninda yapmak
+9. entity icinde constructor/method tutmamak; davranislari `AppService` ve `DomainService` ayrimiyla `Application` katmanina almak
+10. teknik bazli `Infrastructure` klasorleme
+11. OKS entegrasyonunu yalnizca `Infrastructure` ve `API` katmaninda yapmak
 
 Bu yapi, yeni baslayan ekipler icin yeterince net; buyuyen projeler icin de yeterince esnektir.

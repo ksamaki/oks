@@ -66,6 +66,10 @@ src/
         Services/
           UserPermissionResolverService.cs
           IUserPermissionResolverService.cs
+          RegisterUserAppService.cs
+          IRegisterUserAppService.cs
+          RegisterUserDomainService.cs
+          IRegisterUserDomainService.cs
         Commands/
           RegisterUser/
             RegisterUserCommand.cs
@@ -102,6 +106,10 @@ src/
         Services/
           RolePermissionMapperService.cs
           IRolePermissionMapperService.cs
+          CreateRoleAppService.cs
+          ICreateRoleAppService.cs
+          CreateRoleDomainService.cs
+          ICreateRoleDomainService.cs
         Commands/
           CreateRole/
             CreateRoleCommand.cs
@@ -120,6 +128,10 @@ src/
         Services/
           ClientSecretService.cs
           IClientSecretService.cs
+          CreateClientAppService.cs
+          ICreateClientAppService.cs
+          CreateClientDomainService.cs
+          ICreateClientDomainService.cs
         Commands/
           CreateClient/
             CreateClientCommand.cs
@@ -135,6 +147,11 @@ src/
             GetClientByIdResponseDto.cs
             GetClientByIdQueryValidator.cs
       Sessions/
+        Services/
+          RevokeSessionAppService.cs
+          IRevokeSessionAppService.cs
+          RevokeSessionDomainService.cs
+          IRevokeSessionDomainService.cs
         Commands/
           RevokeSession/
             RevokeSessionCommand.cs
@@ -153,6 +170,14 @@ src/
         Services/
           AuthenticationOrchestratorService.cs
           IAuthenticationOrchestratorService.cs
+          LoginAppService.cs
+          ILoginAppService.cs
+          LoginDomainService.cs
+          ILoginDomainService.cs
+          RefreshTokenAppService.cs
+          IRefreshTokenAppService.cs
+          RefreshTokenDomainService.cs
+          IRefreshTokenDomainService.cs
         Commands/
           Login/
             LoginCommand.cs
@@ -228,6 +253,8 @@ tests/
 - Enum, value object ve domain event'ler dogrudan aggregate davranisini desteklemelidir.
 - Login gibi saf orkestrasyon use-case'leri burada degil `Application` katmaninda olmalidir.
 - OksFramework'te zaten var olan ortak base tipler veya altyapi kontratlari, burada gereksiz ornek dosya listesi olarak tekrar edilmemelidir.
+- Bu dokumandaki yaklasimda `Domain` entity'leri icinde constructor ve davranis metotlari bulunmaz.
+- Entity davranislari `Application` katmaninda ilgili aggregate altindaki `Services/` klasorune tasinmalidir.
 
 ### 2) Application
 
@@ -235,9 +262,53 @@ tests/
 - Her AggregateRoot icin ayri klasor acmak, use-case'leri is alanina gore toplar.
 - `Commands` ve `Queries` altinda her use-case klasoru kendi `Command/Query`, `Handler`, `RequestDto`, `ResponseDto`, `Validator` dosyalarini birlikte tutmalidir.
 - Aggregate seviyesinde tekrar kullanilan application servisleri `Services` klasorunde tutulmalidir.
+- `Services` altinda iki rol net ayrilmalidir:
+  - `DomainService`: is kuralini uygular
+  - `AppService`: use-case akislarini ve orkestrasyonu yonetir
 - Handler'lar domain davranisini aggregate uzerinden calistirir; teknik detaylara inmez.
 - Cross-cutting davranislar MediatR pipeline benzeri `Behaviors` klasorunde tutulabilir.
 - Validation burada yapilir; persistence tarafina gecmeden request dogrulanir.
+
+Ornek ayrim:
+
+```csharp
+public async Task AddFriendAsync(Guid userId, Guid friendUserId)
+{
+    var user = await _repo.GetByIdAsync(userId);
+    var friend = await _repo.GetByIdAsync(friendUserId);
+
+    _domainService.AddFriend(user, friend);
+
+    await _repo.UpdateAsync(user);
+}
+```
+
+Bu `AppService` akisinda soyledigi sey:
+
+- veriyi al
+- domain kuralini calistir
+- sonucu kaydet
+
+```csharp
+public void AddFriend(User user, User friend)
+{
+    if (user.Id == friend.Id)
+        throw new InvalidOperationException(...);
+
+    if (!friend.IsActive)
+        throw new InvalidOperationException(...);
+
+    if (user.HasFriend(friend.Id))
+        throw new InvalidOperationException(...);
+
+    user.AddFriendInternal(friend.Id);
+}
+```
+
+Bu `DomainService` tarafinda soyledigi sey:
+
+- bu isin kurali budur
+- hangi durumda izin var / hangi durumda yok
 
 ### 3) Infrastructure
 
@@ -257,7 +328,7 @@ tests/
 
 ## AggregateRoot bazli klasorleme notu
 
-Sizin istediginiz gibi `Application` icinde her AggregateRoot altinda `Services`, `Commands` ve `Queries` tutmak iyi bir secimdir. Bu yapida her use-case klasoru kendi `RequestDto`, `ResponseDto`, `Handler` ve `Validator` dosyalariyla birlikte durur. Bu, ozellikle buyuyen auth alanlarinda teknik degil is odakli gezinme saglar.
+Sizin istediginiz gibi `Application` icinde her AggregateRoot altinda `Services`, `Commands` ve `Queries` tutmak iyi bir secimdir. Bu yapida her use-case klasoru kendi `RequestDto`, `ResponseDto`, `Handler` ve `Validator` dosyalariyla birlikte durur. Entity icindeki davranislar da ayni aggregate altindaki `Services` klasorune tasinir. Bu, ozellikle buyuyen auth alanlarinda teknik degil is odakli gezinme saglar.
 
 Ancak su dengeyi koruyun:
 

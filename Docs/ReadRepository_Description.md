@@ -2,22 +2,84 @@
 
 [Ana sayfa](../README.md)
 
-OKS read-only repository katmanı, veri okumayı yazma işlerinden ayırarak CQRS dostu ve test edilebilir bir altyapı sağlar. `IReadRepository<TEntity, TKey>` artık hem `GetByIdAsync` hem de SQL'e çevrilebilir predicate alan `GetAsync` / `GetListAsync` overload'larını içerir.
+OKS read-only repository katmani, veri okumayi yazma islerinden ayirarak CQRS dostu ve test edilebilir bir altyapi saglar. Bu yapida temel okuma standardi `IQueryable` merkezlidir.
 
-## Başlıca bileşenler
-> Mimari not (2026-03-30): `Oks.Web` katmanı abstraction-only bağımlılık kuralı ile çalışır; concrete persistence/logging/caching implementasyonları host tarafında compose edilir.
+`IReadRepository<TEntity, TKey>` su yetenekleri saglar:
 
-- **Oks.Persistence.Abstractions**: `IReadRepository` arabirimi ve ortak modeller.
-- **Oks.Persistence.EfCore**: EF Core implementasyonu, `AsNoTracking` varsayılanları ve soft-delete query filter.
-- **Oks.Web**: HTTP tabanlı current user provider entegrasyonu (`IOksUserProvider`).
+- `GetByIdAsync`
+- `GetListAsync`
+- `Query()`
+- `Query(predicate)`
 
-## Neler sağlar?
-- Predicate'lerin DB tarafında çalışması (client-side evaluation riski azaltılır).
-- `AsNoTracking` ile read performansı.
-- Mevcut `GetByIdAsync` API ile geriye uyumluluk.
-- `Query()` üzerinden sorting/paging için genişlemeye açık yapı.
+Tek kayit / cok kayit / var-yok / sayi gibi semantik ayrimlar repository isimleriyle degil, LINQ async operatorleriyle yapilir:
+
+- `FirstOrDefaultAsync`
+- `SingleOrDefaultAsync`
+- `AnyAsync`
+- `CountAsync`
+- `ToListAsync`
+
+Bu yaklasim, buyuk frameworklerdeki `IQueryable` merkezli sorgulama mantigina daha yakindir.
+
+## Baslica bilesenler
+> Mimari not (2026-04-12): `Oks.Web` katmani abstraction-only bagimlilik kurali ile calisir; concrete persistence/logging/caching implementasyonlari host tarafinda compose edilir.
+
+- **Oks.Persistence.Abstractions**: `IReadRepository` arayuzu ve ortak modeller.
+- **Oks.Persistence.EfCore**: EF Core implementasyonu, `AsNoTracking` varsayilanlari ve soft-delete query filter.
+- **Oks.Web**: HTTP tabanli current user provider entegrasyonu (`IOksUserProvider`).
+
+## Neler saglar?
+
+- `GetByIdAsync` ile PK bazli tek kayit erisimi
+- `GetListAsync(predicate)` ile filtreli liste cekme
+- `GetListAsync()` ile tum listeyi cekebilme
+- `Query()` ve `Query(predicate)` ile sorting, paging ve ileri query kompozisyonu
+- `FirstOrDefaultAsync`, `SingleOrDefaultAsync`, `AnyAsync`, `CountAsync` gibi standart LINQ semantiklerine uyum
+
+## Onerilen sorgulama standardi
+
+- PK ile tek kayit: `GetByIdAsync`
+- Tek kayit ama first-match yeterli: `Query(...).FirstOrDefaultAsync()`
+- Tek kayit ve uniqueness bekleniyor: `Query(...).SingleOrDefaultAsync()`
+- Varlik kontrolu: `Query(...).AnyAsync()`
+- Adet: `Query(...).CountAsync()`
+- Liste: `GetListAsync(predicate)` veya `Query(...).ToListAsync()`
+
+## Anti-pattern
+
+Su tip kullanimlar performans riski tasir:
+
+```csharp
+var all = await repo.GetListAsync();
+var item = all.FirstOrDefault(...);
+```
+
+```csharp
+var all = await repo.GetListAsync();
+var filtered = all.Where(...).ToList();
+```
+
+Framework bu kullanimi tamamen engellemez. Bunun yerine:
+
+- dokumantasyon
+- code review kurali
+- ileride analyzer
+
+ile dogru kullanima yonlendirme hedeflenir.
+
+## Code Review kurali
+
+Review'de asagidaki pattern'ler hata adayi kabul edilmelidir:
+
+- `GetListAsync()` sonrasi `FirstOrDefault`
+- `GetListAsync()` sonrasi `Single` / `SingleOrDefault`
+- `GetListAsync()` sonrasi `Where`
+- `GetListAsync()` sonrasi `Any`
+- `GetListAsync()` sonrasi `Count`
+
+Tek kayit, var-yok veya sayi ihtiyaci varsa bu islemler DB tarafinda calistirilmalidir.
 
 ---
 ## Usage
 
-Kurulum ve kopyala-yapıştır kod örnekleri için: [ReadRepository_Usage.md](ReadRepository_Usage.md)
+Kurulum ve kopyala-yapistir kod ornekleri icin: [ReadRepository_Usage.md](ReadRepository_Usage.md)

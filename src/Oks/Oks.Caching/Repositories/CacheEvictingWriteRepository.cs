@@ -38,6 +38,8 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
     public IQueryable<TEntity> Query() => _inner.Query();
 
+    public IQueryable<TEntity> Query(Expression<Func<TEntity, bool>> predicate) => _inner.Query(predicate);
+
     public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
     {
         var policy = ResolveReadPolicy();
@@ -46,16 +48,6 @@ public class CacheEvictingWriteRepository<TEntity, TKey>
 
         var key = _keyBuilder.ForRead<TEntity>("GetById", new { id });
         return await _cacheService.GetOrAddAsync(key, () => _inner.GetByIdAsync(id, cancellationToken), WithTags(CacheTagHelper.ForEntity<TEntity, TKey>(id), policy), cancellationToken);
-    }
-
-    public async Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
-    {
-        var policy = ResolveReadPolicy();
-        if (!policy.Enabled || _queryScope == RepositoryQueryCacheScope.ListOnly)
-            return await _inner.GetAsync(predicate, cancellationToken);
-
-        var key = _keyBuilder.ForRead<TEntity>("Get", predicate.ToString());
-        return await _cacheService.GetOrAddAsync(key, () => _inner.GetAsync(predicate, cancellationToken), WithTags(CacheTagHelper.ForEntityName<TEntity>(), policy), cancellationToken);
     }
 
     public async Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>>? predicate = null, CancellationToken cancellationToken = default)

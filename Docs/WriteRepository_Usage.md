@@ -61,6 +61,8 @@ app.Run();
 
 Okuma + yazma yapan bir handler/service ornegi:
 ```csharp
+using Microsoft.EntityFrameworkCore;
+
 public class AcceptFriendRequestCommandHandler : IRequestHandler<AcceptFriendRequestCommand, bool>
 {
     private readonly IWriteRepository<Friendship, Guid> _friendshipRepository;
@@ -72,9 +74,9 @@ public class AcceptFriendRequestCommandHandler : IRequestHandler<AcceptFriendReq
 
     public async Task<bool> Handle(AcceptFriendRequestCommand request, CancellationToken cancellationToken)
     {
-        var friendship = await _friendshipRepository.GetAsync(
-            f => f.Id == request.RequestId && f.FriendUserId == request.ReceiverId,
-            cancellationToken);
+        var friendship = await _friendshipRepository.Query(
+                f => f.Id == request.RequestId && f.FriendUserId == request.ReceiverId)
+            .SingleOrDefaultAsync(cancellationToken);
 
         if (friendship is null)
         {

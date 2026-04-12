@@ -62,12 +62,12 @@ public class AuditAndSoftDeleteTests
         user.DeletedAt.Should().NotBeNull();
         user.DeletedBy.Should().Be("test-user");
 
-        var list = await readRepo.GetListAsync();
+        var list = await readRepo.Query().ToListAsync();
         list.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetAsync_Should_Apply_Predicate_On_Query()
+    public async Task Query_Should_Apply_Predicate_On_Query()
     {
         using var context = CreateInMemoryContext();
         IWriteRepository<TestUser, int> writeRepo = new EfWriteRepository<TestUser, int>(context);
@@ -78,7 +78,8 @@ public class AuditAndSoftDeleteTests
         await writeRepo.AddAsync(new TestUser { Name = "Beta" });
         await uow.SaveChangesAsync();
 
-        var user = await readRepo.GetAsync(x => x.Name == "Beta");
+        var user = await readRepo.Query(x => x.Name == "Beta")
+            .FirstOrDefaultAsync();
 
         user.Should().NotBeNull();
         user!.Name.Should().Be("Beta");

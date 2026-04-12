@@ -41,16 +41,8 @@ public class EfReadRepository<TEntity, TKey>
     public IQueryable<TEntity> Query()
         => DbSet.AsNoTracking();
 
-    public async Task<TEntity?> GetAsync(
-        Expression<Func<TEntity, bool>> predicate,
-        CancellationToken cancellationToken = default)
-    {
-        return await MeasureReadAsync(
-            "Get",
-            async () => await DbSet.AsNoTracking()
-                .Where(predicate)
-                .FirstOrDefaultAsync(cancellationToken));
-    }
+    public IQueryable<TEntity> Query(Expression<Func<TEntity, bool>> predicate)
+        => DbSet.AsNoTracking().Where(predicate);
 
     public async Task<TEntity?> GetByIdAsync(
         TKey id,

@@ -85,6 +85,14 @@ src/
       Services/
         AuthenticationOrchestratorService.cs
         IAuthenticationOrchestratorService.cs
+        LoginAppService.cs
+        ILoginAppService.cs
+        LoginDomainService.cs
+        ILoginDomainService.cs
+        RefreshTokenAppService.cs
+        IRefreshTokenAppService.cs
+        RefreshTokenDomainService.cs
+        IRefreshTokenDomainService.cs
       Commands/
         Login/
           LoginCommand.cs
@@ -127,6 +135,10 @@ src/
       Services/
         UserPermissionResolverService.cs
         IUserPermissionResolverService.cs
+        RegisterUserAppService.cs
+        IRegisterUserAppService.cs
+        RegisterUserDomainService.cs
+        IRegisterUserDomainService.cs
       Commands/
         RegisterUser/
           RegisterUserCommand.cs
@@ -145,6 +157,10 @@ src/
       Services/
         RolePermissionMapperService.cs
         IRolePermissionMapperService.cs
+        CreateRoleAppService.cs
+        ICreateRoleAppService.cs
+        CreateRoleDomainService.cs
+        ICreateRoleDomainService.cs
       Commands/
         CreateRole/
           CreateRoleCommand.cs
@@ -163,6 +179,10 @@ src/
       Services/
         ClientSecretService.cs
         IClientSecretService.cs
+        CreateClientAppService.cs
+        ICreateClientAppService.cs
+        CreateClientDomainService.cs
+        ICreateClientDomainService.cs
       Commands/
         CreateClient/
           CreateClientCommand.cs
@@ -247,6 +267,51 @@ Bu servis icin `Application` katmaninda standart su olmalidir:
   - `RequestDto`
   - `ResponseDto`
   - `Validator`
+- Entity icinde constructor ve method bulunmaz; davranislar ilgili aggregate altindaki `Services/` klasorune tasinir
+- `Services/` altinda:
+  - `DomainService`: is kuralini uygular
+  - `AppService`: use-case akislarini ve orkestrasyonu yonetir
+
+Ornek ayrim:
+
+```csharp
+public async Task AddFriendAsync(Guid userId, Guid friendUserId)
+{
+    var user = await _repo.GetByIdAsync(userId);
+    var friend = await _repo.GetByIdAsync(friendUserId);
+
+    _domainService.AddFriend(user, friend);
+
+    await _repo.UpdateAsync(user);
+}
+```
+
+Bu `AppService` akisinda soyledigi sey:
+
+- veriyi al
+- domain kuralini calistir
+- sonucu kaydet
+
+```csharp
+public void AddFriend(User user, User friend)
+{
+    if (user.Id == friend.Id)
+        throw new InvalidOperationException(...);
+
+    if (!friend.IsActive)
+        throw new InvalidOperationException(...);
+
+    if (user.HasFriend(friend.Id))
+        throw new InvalidOperationException(...);
+
+    user.AddFriendInternal(friend.Id);
+}
+```
+
+Bu `DomainService` tarafinda soyledigi sey:
+
+- bu isin kurali budur
+- hangi durumda izin var / hangi durumda yok
 
 Ornek:
 
@@ -273,6 +338,16 @@ Bu ayni mantik diger katmanlarda da surdurulmelidir:
 - `Contracts`: `Requests`, `Responses`, `Events`
 
 Tek tek sinif isimleri siralamak yerine, sorumluluk bazli klasorler gosterilmelidir. OksFramework'te zaten var olan ortak altyapi dosyalari ornek diye tekrar sayilmamalidir.
+
+## Domain model notu
+
+Bu dokumandaki yaklasimda `Domain` entity'leri anemic model olarak ele alinir:
+
+- entity icinde constructor bulunmaz
+- entity icinde davranis metodu bulunmaz
+- veri tasiyan domain tipleri `Domain` katmaninda kalir
+- is kurali `DomainService` ile uygulanir
+- use-case orkestrasyonu `AppService` ile yonetilir
 
 ## API siniri ve gateway notu
 

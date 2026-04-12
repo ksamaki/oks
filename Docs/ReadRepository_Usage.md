@@ -2,9 +2,10 @@
 
 [Read-only Repository - Description](ReadRepository_Description.md) | [Ana sayfa](../README.md)
 
-Aşağıdaki adımları doğrudan kopyala-yapıştır ederek projene read-only repository katmanını ekleyebilirsin.
+Asagidaki adimlari dogrudan kopyala-yapistir ederek projene read-only repository katmanini ekleyebilirsin.
 
-## 1) Proje referanslarını ekle (`.csproj`)
+## 1) Proje referanslarini ekle (`.csproj`)
+
 ```xml
 <ItemGroup>
   <ProjectReference Include="..\\src\\Oks\\Oks.Domain\\Oks.Domain.csproj" />
@@ -14,8 +15,8 @@ Aşağıdaki adımları doğrudan kopyala-yapıştır ederek projene read-only r
 </ItemGroup>
 ```
 
-## 2) DbContext'i hazırla
-`OksDbContextBase` soft delete ve audit alanlarını yönetir.
+## 2) DbContext'i hazirla
+
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Oks.Persistence.EfCore;
@@ -26,7 +27,8 @@ public class AppDbContext : OksDbContextBase
 }
 ```
 
-## 3) DI kaydı
+## 3) DI kaydi
+
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Oks.Persistence.EfCore;
@@ -38,13 +40,14 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddOksEfCore<AppDbContext>();
-builder.Services.AddOksCurrentUserProvider(); // Web claim tabanlı IOksUserProvider
-// Minimal API endpoint'lerinde de aynı provider geçerlidir.
+builder.Services.AddOksCurrentUserProvider();
 ```
 
-## 4) Controller örneği
+## 4) Controller ornegi
+
 ```csharp
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Oks.Persistence.Abstractions.Repositories;
 
 [ApiController]
@@ -58,26 +61,105 @@ public class ProductsController : ControllerBase
         _read = read;
     }
 
-    [HttpGet]
-    public Task<List<Product>> Get() => _read.GetListAsync();
+    [HttpGet("{id:guid}")]
+    public Task<Product?> GetById(Guid id) =>
+        _read.GetByIdAsync(id);
 
     [HttpGet("search")]
-    public Task<Product?> GetBySku(string sku) => _read.GetAsync(x => x.Sku == sku);
+    public Task<Product?> GetBySku(string sku, CancellationToken cancellationToken) =>
+        _read.Query(x => x.Sku == sku)
+            .FirstOrDefaultAsync(cancellationToken);
 
-    [HttpGet("{id:guid}")]
-    public Task<Product?> GetById(Guid id) => _read.GetByIdAsync(id);
+    [HttpGet("active")]
+    public Task<List<Product>> GetActive(CancellationToken cancellationToken) =>
+        _read.GetListAsync(x => x.IsActive, cancellationToken);
+
+    [HttpGet("exists")]
+    public Task<bool> Exists(string sku, CancellationToken cancellationToken) =>
+        _read.Query(x => x.Sku == sku)
+            .AnyAsync(cancellationToken);
+
+    [HttpGet("count")]
+    public Task<int> CountActive(CancellationToken cancellationToken) =>
+        _read.Query(x => x.IsActive)
+            .CountAsync(cancellationToken);
 }
 ```
 
-## 5) SQL seviyesinde filtre + paging/sorting
-`GetAsync` ve `GetListAsync(predicate)` parametreleri `Expression<Func<...>>` aldığı için EF Core tarafından SQL'e çevrilir.
+## 5) Dogru kullanim
 
-Daha ileri sorting/paging için `Query()` üzerinden genişleyebilirsin:
+Tek kayit ama first-match yeterliyse:
+
 ```csharp
-var page = await _read.Query()
-    .Where(x => x.CategoryId == categoryId)
+var friendship = await _read.Query(
+        x => x.Id == requestId && x.FriendUserId == receiverId)
+    .FirstOrDefaultAsync(cancellationToken);
+```
+
+Tek kayit ve uniqueness bekleniyorsa:
+
+```csharp
+var friendship = await _read.Query(
+        x => x.Id == requestId && x.FriendUserId == receiverId)
+    .SingleOrDefaultAsync(cancellationToken);
+```
+
+Liste ararken:
+
+```csharp
+var activeUsers = await _read.GetListAsync(
+    x => x.IsActive,
+    cancellationToken);
+```
+
+Sorting/paging yaparken:
+
+```csharp
+var page = await _read.Query(x => x.CategoryId == categoryId)
     .OrderBy(x => x.Name)
     .Skip((pageIndex - 1) * pageSize)
     .Take(pageSize)
     .ToListAsync(cancellationToken);
 ```
+
+## 6) Anti-pattern
+
+Yanlis:
+
+```csharp
+var all = await _read.GetListAsync(cancellationToken: cancellationToken);
+var friendship = all.FirstOrDefault(x => x.Id == requestId);
+```
+
+Yanlis:
+
+```csharp
+var all = await _read.GetListAsync();
+var exists = all.Any(x => x.Sku == sku);
+```
+
+Dogru:
+
+```csharp
+var friendship = await _read.Query(x => x.Id == requestId)
+    .FirstOrDefaultAsync(cancellationToken);
+```
+
+Dogru:
+
+```csharp
+var exists = await _read.Query(x => x.Sku == sku)
+    .AnyAsync(cancellationToken);
+```
+
+## 7) Code Review kurali
+
+Asagidaki kullanimlar review'de smell kabul edilmelidir:
+
+- `GetListAsync()` sonrasi `FirstOrDefault`
+- `GetListAsync()` sonrasi `Where`
+- `GetListAsync()` sonrasi `SingleOrDefault`
+- `GetListAsync()` sonrasi `Any`
+- `GetListAsync()` sonrasi `Count`
+
+Buradaki hedef framework API'sini zorla daraltmak degil, yazilimciyi `IQueryable + LINQ async` standardina yonlendirmektir.
