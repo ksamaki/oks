@@ -27,6 +27,8 @@ OKS logging modülü; **Request, Exception, Performance, RateLimit, Repository, 
 
 `modelBuilder.AddOksLogging()` çağrısı bu tabloları EF modeline ekler.
 
+Buyuk payload tasiyabilen alanlar (`Exception`, `ExtraDataJson`, `OldValuesJson`, `NewValuesJson`) bilincli olarak max-length kisiti olmadan modellenmelidir. Boylece SQL Server tarafinda `nvarchar(max)`, PostgreSQL tarafinda `text` olarak olusur ve log insert'leri 4000 karakter sinirina takilmaz.
+
 ## Attribute / Metadata desteği
 - `[OksPerformance(thresholdMs)]`
 - `[OksSkipPerformance]`

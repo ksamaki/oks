@@ -20,7 +20,7 @@ public class OksLogCustomConfiguration : IEntityTypeConfiguration<OksLogCustom>
         builder.Property(x => x.UserId).HasMaxLength(100);
         builder.Property(x => x.ClientIp).HasMaxLength(50);
 
-        builder.Property(x => x.ExtraDataJson).HasMaxLength(4000);
+        builder.Property(x => x.ExtraDataJson);
         builder.Property(x => x.CreatedAtUtc).IsRequired();
     }
 }

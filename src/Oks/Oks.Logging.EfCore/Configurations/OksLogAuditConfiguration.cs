@@ -17,8 +17,8 @@ public class OksLogAuditConfiguration : IEntityTypeConfiguration<OksLogAudit>
 
         builder.Property(x => x.Operation).IsRequired().HasMaxLength(50);
 
-        builder.Property(x => x.OldValuesJson).HasMaxLength(4000);
-        builder.Property(x => x.NewValuesJson).HasMaxLength(4000);
+        builder.Property(x => x.OldValuesJson);
+        builder.Property(x => x.NewValuesJson);
 
         builder.Property(x => x.UserId).HasMaxLength(100);
         builder.Property(x => x.CorrelationId).HasMaxLength(100);

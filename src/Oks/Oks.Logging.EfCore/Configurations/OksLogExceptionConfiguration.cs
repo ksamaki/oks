@@ -16,8 +16,7 @@ public class OksLogExceptionConfiguration : IEntityTypeConfiguration<OksLogExcep
             .IsRequired()
             .HasMaxLength(2000);
 
-        builder.Property(x => x.Exception)
-            .HasMaxLength(4000);
+        builder.Property(x => x.Exception);
 
         builder.Property(x => x.Path).HasMaxLength(500);
         builder.Property(x => x.HttpMethod).HasMaxLength(10);

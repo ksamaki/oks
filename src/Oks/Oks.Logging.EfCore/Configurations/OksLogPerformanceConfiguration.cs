@@ -20,7 +20,7 @@ public class OksLogPerformanceConfiguration : IEntityTypeConfiguration<OksLogPer
         builder.Property(x => x.CorrelationId).HasMaxLength(100);
         builder.Property(x => x.UserId).HasMaxLength(100);
 
-        builder.Property(x => x.ExtraDataJson).HasMaxLength(4000);
+        builder.Property(x => x.ExtraDataJson);
 
         builder.Property(x => x.CreatedAtUtc).IsRequired();
     }

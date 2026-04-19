@@ -55,3 +55,34 @@ Gecis adimi:
 1. `OksDbContextBase` turevlerinden `GetCurrentUserIdentifier` override'ini kaldir.
 2. Web projelerinde `AddOksCurrentUserProvider()` ekle.
 3. Testlerde `IOksUserProvider` mock/fake enjekte et.
+
+## 3) Logging initial migration guncellemesi
+
+Logging tablolarinda buyuyebilen payload alanlari icin `varchar(4000)` / `nvarchar(4000)` / `character varying(4000)` gibi sinirli kolonlar kullanilmamali.
+
+Gerekce:
+
+- `Exception` stack trace ve inner exception zinciri 4000 karakteri rahatlikla asabilir.
+- `ExtraDataJson`, `OldValuesJson` ve `NewValuesJson` alanlari audit veya request baglaminda degiskendir; sabit uzunluk varsayimi dogru degildir.
+- PostgreSQL destegi icin provider-specific tip dayatmak yerine EF tarafinda max length vermemek daha dogrudur.
+
+Initial migration uretilirken asagidaki kolonlar sinirsiz string olarak tanimlanmali:
+
+- `OksLogException.Exception`
+- `OksLogCustom.ExtraDataJson`
+- `OksLogPerformance.ExtraDataJson`
+- `OksLogRateLimit.ExtraDataJson`
+- `OksLogRepository.ExtraDataJson`
+- `OksLogAudit.OldValuesJson`
+- `OksLogAudit.NewValuesJson`
+
+Beklenen sonuc:
+
+- SQL Server: `nvarchar(max)`
+- PostgreSQL: `text`
+- Diger provider'lar: provider'in unbounded string karsiligi
+
+Not:
+
+- Bu alanlarda `HasMaxLength(4000)` verilmemelidir.
+- Host uygulama kendi migration'ini uretiyorsa yeni initial migration veya ilgili alter migration bu modele gore alinmalidir.
