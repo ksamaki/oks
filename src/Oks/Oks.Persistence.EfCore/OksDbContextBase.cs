@@ -35,6 +35,7 @@ public abstract class OksDbContextBase : DbContext
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        EntityGuidIdGenerator.AssignPendingGuids(ChangeTracker);
         ApplyAuditInfo();
         ApplySoftDelete();
 

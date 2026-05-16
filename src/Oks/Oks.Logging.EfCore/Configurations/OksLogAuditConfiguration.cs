@@ -11,6 +11,7 @@ public class OksLogAuditConfiguration : IEntityTypeConfiguration<OksLogAudit>
         builder.ToTable("OksLogAudit");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.EntityName).IsRequired().HasMaxLength(200);
         builder.Property(x => x.EntityId).IsRequired().HasMaxLength(200);

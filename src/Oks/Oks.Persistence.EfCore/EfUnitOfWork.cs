@@ -35,6 +35,8 @@ public class EfUnitOfWork : IUnitOfWork
         if (!_dbContext.ChangeTracker.HasChanges())
             return 0;
 
+        EntityGuidIdGenerator.AssignPendingGuids(_dbContext.ChangeTracker);
+
         // Audit kapalıysa veya logWriter yoksa: sadece normal SaveChanges
         if (!_auditOptions.Enabled || _logWriter is null)
         {

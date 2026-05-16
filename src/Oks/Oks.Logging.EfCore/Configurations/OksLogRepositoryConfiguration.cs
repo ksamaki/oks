@@ -11,6 +11,7 @@ public class OksLogRepositoryConfiguration : IEntityTypeConfiguration<OksLogRepo
         builder.ToTable("OksLogRepository");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.Message)
             .IsRequired()

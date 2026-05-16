@@ -4,7 +4,7 @@ namespace Oks.Logging.EfCore.Entities;
 
 public class OksLogRateLimit
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     public DateTime CreatedAtUtc { get; set; }
 

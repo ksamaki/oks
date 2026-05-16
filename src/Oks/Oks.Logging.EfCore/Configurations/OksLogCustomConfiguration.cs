@@ -11,6 +11,7 @@ public class OksLogCustomConfiguration : IEntityTypeConfiguration<OksLogCustom>
         builder.ToTable("OksLogCustom");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.Message)
             .IsRequired()

@@ -11,6 +11,7 @@ public class OksLogExceptionConfiguration : IEntityTypeConfiguration<OksLogExcep
         builder.ToTable("OksLogException");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.Message)
             .IsRequired()

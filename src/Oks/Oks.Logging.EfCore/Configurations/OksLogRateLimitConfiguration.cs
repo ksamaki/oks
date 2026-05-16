@@ -11,6 +11,7 @@ public class OksLogRateLimitConfiguration : IEntityTypeConfiguration<OksLogRateL
         builder.ToTable("OksLogRateLimit");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.Message)
             .IsRequired()
